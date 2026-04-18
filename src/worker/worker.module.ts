@@ -7,7 +7,6 @@ import { CryptoRandomProvider } from '@simulation/infrastructure/random/crypto-r
 import { UniformRandomGoalDynamics } from '@simulation/infrastructure/dynamics/uniform-random-goal-dynamics';
 import { TickingSimulationEngine } from '@simulation/infrastructure/engine/ticking-simulation-engine';
 import { SimulationWorkerHandler } from '@simulation/application/worker/simulation-worker.handler';
-import type { SimulationConfig } from '@simulation/domain/simulation-config';
 import type { RandomProvider } from '@simulation/domain/ports/random-provider.port';
 import type { Clock } from '@simulation/domain/ports/clock.port';
 import type { MatchDynamics } from '@simulation/domain/ports/match-dynamics.port';
@@ -18,16 +17,6 @@ import type { CommandBus } from '@shared/messaging/command-bus.port';
 import type { EventBus } from '@shared/messaging/event-bus.port';
 
 const DEFAULT_PROFILE_ID = 'default';
-
-function configFromEnv(config: ConfigService<AppConfig, true>): SimulationConfig {
-  return {
-    durationMs: config.get('SIMULATION_DURATION_MS', { infer: true }),
-    goalIntervalMs: config.get('GOAL_INTERVAL_MS', { infer: true }),
-    goalCount: config.get('GOAL_COUNT', { infer: true }),
-    firstGoalOffsetMs: config.get('FIRST_GOAL_OFFSET_MS', { infer: true }),
-    startCooldownMs: config.get('START_COOLDOWN_MS', { infer: true }),
-  };
-}
 
 async function shutdownIfPossible(bus: unknown): Promise<void> {
   if (
@@ -86,7 +75,15 @@ async function shutdownIfPossible(bus: unknown): Promise<void> {
     {
       provide: PORT_TOKENS.MATCH_DYNAMICS,
       useFactory: (random: RandomProvider, config: ConfigService<AppConfig, true>) =>
-        new UniformRandomGoalDynamics(random, configFromEnv(config)),
+        new UniformRandomGoalDynamics(
+          random,
+          { durationMs: config.get('SIMULATION_DURATION_MS', { infer: true }) },
+          {
+            goalCount: config.get('GOAL_COUNT', { infer: true }),
+            goalIntervalMs: config.get('GOAL_INTERVAL_MS', { infer: true }),
+            firstGoalOffsetMs: config.get('FIRST_GOAL_OFFSET_MS', { infer: true }),
+          },
+        ),
       inject: [PORT_TOKENS.RANDOM_PROVIDER, ConfigService],
     },
     {
