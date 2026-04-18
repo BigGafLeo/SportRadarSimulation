@@ -12,14 +12,6 @@ services:
     ports:
       - '3000:3000'
     environment:
+      # Only override values that differ from Zod defaults in src/shared/config/config.schema.ts.
       NODE_ENV: development
-      PORT: 3000
-      # Simulation defaults (see src/shared/config/config.schema.ts)
-      SIMULATION_DURATION_MS: 9000
-      GOAL_INTERVAL_MS: 1000
-      GOAL_COUNT: 9
-      FIRST_GOAL_OFFSET_MS: 1000
-      START_COOLDOWN_MS: 5000
-      FINISHED_RETENTION_MS: 3600000
-      GC_INTERVAL_MS: 300000
     restart: unless-stopped

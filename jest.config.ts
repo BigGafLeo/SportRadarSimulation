@@ -1,4 +1,6 @@
 import type { Config } from 'jest';
+import { pathsToModuleNameMapper } from 'ts-jest';
+import { compilerOptions } from './tsconfig.json';
 
 const config: Config = {
   preset: 'ts-jest',
@@ -10,11 +12,7 @@ const config: Config = {
   },
   collectCoverageFrom: ['src/**/*.ts', '!src/**/*.module.ts', '!src/main.ts'],
   coverageDirectory: 'coverage',
-  moduleNameMapper: {
-    '^@simulation/(.*)$': '<rootDir>/src/simulation/$1',
-    '^@ownership/(.*)$': '<rootDir>/src/ownership/$1',
-    '^@shared/(.*)$': '<rootDir>/src/shared/$1',
-  },
+  moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, { prefix: '<rootDir>/' }),
 };
 
 export default config;
