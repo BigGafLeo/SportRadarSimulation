@@ -1,8 +1,22 @@
+import type { DomainEvent } from '@simulation/domain/events/domain-event';
+import type { Subscription } from './command-bus.port';
+
+export interface EventMeta {
+  readonly simulationId?: string;
+  readonly correlationId?: string;
+}
+
+export type EventFilter = (event: DomainEvent, meta: EventMeta) => boolean;
+
 /**
- * Event publish/subscribe port (in-memory in Phase 1, BullMQ in Phase 2+).
- * Phase 1 will define: publish, subscribe.
+ * Event publish/subscribe port.
+ * Default impl (Phase 1): InMemoryEventBus.
+ * Later (Phase 2): BullMQEventBus.
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface EventBus {
-  // Phase 1 signature
+  publish(event: DomainEvent, meta?: EventMeta): Promise<void>;
+  subscribe(
+    filter: EventFilter,
+    handler: (event: DomainEvent, meta: EventMeta) => Promise<void>,
+  ): Subscription;
 }

@@ -1,8 +1,8 @@
 /**
  * Randomness abstraction port.
- * Phase 1 will define: int(min: number, max: number): number.
+ * Default impl: CryptoRandomProvider (Phase 1b). Test impl: SeededRandom(seed).
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface RandomProvider {
-  // Phase 1 signature
+  int(min: number, max: number): number;
+  uuid(): string;
 }
