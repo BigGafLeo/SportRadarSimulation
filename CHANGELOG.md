@@ -7,6 +7,37 @@ Projekt używa [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.0.0] — 2026-04-18
+
+### Phase 2 — BullMQ distributed workers
+- `bullmq` + `ioredis` + `@nestjs/bullmq` + Bull Board UI + `testcontainers` installed
+- Shared Redis client factory (`createRedisClient`): lazy connection, BullMQ-compatible
+- `Simulation.fromSnapshot` + `ScoreBoard.fromSnapshot` static methods for aggregate reconstruction
+- `RedisSimulationRepository`: HSET-backed persistence, JSON snapshot serialization
+- `BullMQCommandBus`: per-topic Queue + Worker, shutdown cleanup, Bull Board visible
+- `BullMQEventBus`: single `simulation.events` queue, filter-based subscribe
+- Env-based adapter selection: `TRANSPORT_MODE=inmemory|bullmq`, `PERSISTENCE_MODE=inmemory|redis`, `APP_MODE=orchestrator|worker`
+- `WorkerModule`: minimal NestJS module for worker process (engine + dynamics + handler + BullMQ + Redis repo only)
+- `src/worker.main.ts` + `WorkerBootstrapModule`: standalone worker entrypoint
+- `main.ts`: Bull Board UI mounted at `/queues` when `TRANSPORT_MODE=bullmq`
+- `Dockerfile`: APP_MODE-aware CMD (same image, different entrypoint via env)
+- `docker-compose.yml`: `redis` + `orchestrator` + `worker` (2 replicas) services with healthchecks
+- Integration tests with Testcontainers:
+  - `RedisSimulationRepository` CRUD (5 tests)
+  - `BullMQCommandBus` routing (3 tests)
+  - `BullMQEventBus` publish/subscribe (2 tests)
+  - Full distributed HTTP flow (1 test, real 11s timing)
+- README: Phase 2 distributed run instructions + Bull Board URL
+
+### Key design decisions
+- Unified BullMQ transport (both CommandBus + EventBus) — single Redis, single lib, Bull Board shows everything. Phase 3+ may introduce Redis pub/sub for EventBus when multi-orchestrator.
+- `OwnershipRepository` stays InMemory (orchestrator-only concern in Phase 2)
+- Dynamic imports in DI factories use relative paths (webpack does not resolve tsconfig aliases at runtime)
+- Aggregate reconstruction uses `PRESET_MATCHES` constant (Phase 3 profile-driven dynamics will pass profile-specific matches)
+
+### Tagged
+- `v2.0-bullmq-distributed`
+
 ## [1.0.0] — 2026-04-18
 
 ### Phase 1c — Application + Consumer Gateway
