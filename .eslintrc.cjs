@@ -1,0 +1,40 @@
+module.exports = {
+  parser: '@typescript-eslint/parser',
+  parserOptions: {
+    project: 'tsconfig.json',
+    tsconfigRootDir: __dirname,
+    sourceType: 'module',
+  },
+  plugins: ['@typescript-eslint/eslint-plugin'],
+  extends: [
+    'plugin:@typescript-eslint/recommended',
+    'plugin:prettier/recommended',
+  ],
+  root: true,
+  env: {
+    node: true,
+    jest: true,
+  },
+  ignorePatterns: ['.eslintrc.cjs', 'dist', 'node_modules', 'coverage'],
+  rules: {
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
+    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    '@typescript-eslint/consistent-type-imports': 'error',
+    '@typescript-eslint/no-floating-promises': 'error',
+    'no-eval': 'error',
+    'no-implied-eval': 'error',
+    'no-new-func': 'error',
+    'no-script-url': 'error',
+  },
+  overrides: [
+    {
+      // Phase 0 port stubs are intentionally empty; Phase 1 fills signatures.
+      files: ['src/**/ports/*.port.ts', 'src/shared/messaging/*.port.ts'],
+      rules: {
+        '@typescript-eslint/no-empty-interface': 'off',
+      },
+    },
+  ],
+};

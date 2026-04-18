@@ -1,0 +1,17 @@
+# Phase 0 skeleton — only application service.
+# Phase 2 will add: redis (for BullMQ), workers (N per profile).
+# Phase 4 will add: postgres.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sportradar-simulation:local
+    container_name: sportradar-app
+    ports:
+      - '3000:3000'
+    environment:
+      # Only override values that differ from Zod defaults in src/shared/config/config.schema.ts.
+      NODE_ENV: development
+    restart: unless-stopped
