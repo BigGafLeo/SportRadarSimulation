@@ -1,5 +1,6 @@
 import type { ArgumentsHost } from '@nestjs/common';
 import { DomainExceptionFilter } from '@simulation/infrastructure/consumer/http/domain-exception.filter';
+import { DomainError } from '@simulation/domain/errors/domain.error';
 import { InvalidStateError } from '@simulation/domain/errors/invalid-state.error';
 import { InvalidValueError } from '@simulation/domain/errors/invalid-value.error';
 import {
@@ -80,15 +81,16 @@ describe('DomainExceptionFilter', () => {
     expect(response._status).toBe(401);
   });
 
-  it('unknown domain error falls through to 500', () => {
-    class CustomError extends Error {
+  it('unknown DomainError subclass rethrows for NestJS default handler', () => {
+    // Filter is @Catch(DomainError) — non-DomainError like HttpException bypass it
+    // and go to NestJS default. An unknown DomainError subclass rethrows so the
+    // default handler still emits 500.
+    class CustomDomainError extends DomainError {
       constructor() {
         super('custom');
       }
     }
-    const { response, host } = mockHost();
-    filter.catch(new CustomError(), host);
-    expect(response._status).toBe(500);
-    expect(response._body).toMatchObject({ error: { code: 'INTERNAL' } });
+    const { host } = mockHost();
+    expect(() => filter.catch(new CustomDomainError(), host)).toThrow(CustomDomainError);
   });
 });
