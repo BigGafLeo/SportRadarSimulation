@@ -4,7 +4,6 @@ import { SimulationId } from '@simulation/domain/value-objects/simulation-id';
 import { SimulationName } from '@simulation/domain/value-objects/simulation-name';
 import type { SimulationSnapshot } from '@simulation/domain/aggregates/simulation';
 import type { SimulationRepository } from '@simulation/domain/ports/simulation-repository.port';
-import type { SimulationConfig } from '@simulation/domain/simulation-config';
 import type { Clock } from '@simulation/domain/ports/clock.port';
 import type { ThrottlePolicy } from '@simulation/domain/ports/throttle-policy.port';
 import type { EventPublisher } from '@simulation/domain/ports/event-publisher.port';
@@ -54,7 +53,7 @@ export interface SimulationOrchestratorDeps {
   readonly commandBus: CommandBus;
   readonly eventPublisher: EventPublisher;
   readonly clock: Clock;
-  readonly config: SimulationConfig;
+  readonly cooldownMs: number;
   readonly defaultProfileId: string;
 }
 
@@ -168,7 +167,7 @@ export class SimulationOrchestrator {
       throw new UnknownTokenError(token.value);
     }
     if (!this.deps.throttlePolicy.canIgnite(token, rec.lastIgnitionAt, now)) {
-      throw new ThrottledError(this.deps.config.startCooldownMs);
+      throw new ThrottledError(this.deps.cooldownMs);
     }
   }
 

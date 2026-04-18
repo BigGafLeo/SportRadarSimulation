@@ -23,13 +23,7 @@ import {
   SIMULATION_TOPICS,
 } from '@simulation/application/commands/simulation-topics';
 
-const CONFIG = {
-  durationMs: 9000,
-  goalIntervalMs: 1000,
-  goalCount: 9,
-  firstGoalOffsetMs: 1000,
-  startCooldownMs: 5000,
-};
+const COOLDOWN_MS = 5000;
 
 function buildWiring() {
   const clock = new FakeClock(new Date('2026-04-18T12:00:00Z'));
@@ -40,7 +34,7 @@ function buildWiring() {
   const eventBus = new InMemoryEventBus();
   const publisher = new InMemoryEventPublisher(eventBus);
   const tokenGen = new UuidOwnershipTokenGenerator(rng);
-  const throttle = new FiveSecondCooldownPolicy(CONFIG.startCooldownMs);
+  const throttle = new FiveSecondCooldownPolicy(COOLDOWN_MS);
 
   const orchestrator = new SimulationOrchestrator({
     simulationRepository: simRepo,
@@ -50,7 +44,7 @@ function buildWiring() {
     commandBus: cmdBus,
     eventPublisher: publisher,
     clock,
-    config: CONFIG,
+    cooldownMs: COOLDOWN_MS,
     defaultProfileId: 'default',
   });
 
