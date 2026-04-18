@@ -24,4 +24,13 @@ module.exports = {
     '@typescript-eslint/consistent-type-imports': 'error',
     '@typescript-eslint/no-floating-promises': 'error',
   },
+  overrides: [
+    {
+      // Phase 0 port stubs are intentionally empty; Phase 1 fills signatures.
+      files: ['src/**/ports/*.port.ts', 'src/shared/messaging/*.port.ts'],
+      rules: {
+        '@typescript-eslint/no-empty-interface': 'off',
+      },
+    },
+  ],
 };
