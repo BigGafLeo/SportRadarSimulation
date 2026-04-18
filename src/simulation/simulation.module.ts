@@ -7,6 +7,7 @@ import { OwnershipModule } from '@ownership/ownership.module';
 import { SystemClock } from '@simulation/infrastructure/time/system-clock';
 import { CryptoRandomProvider } from '@simulation/infrastructure/random/crypto-random-provider';
 import { InMemorySimulationRepository } from '@simulation/infrastructure/persistence/in-memory-simulation.repository';
+import { UuidOwnershipTokenGenerator } from '@ownership/infrastructure/uuid-ownership-token.generator';
 import { UniformRandomGoalDynamics } from '@simulation/infrastructure/dynamics/uniform-random-goal-dynamics';
 import { TickingSimulationEngine } from '@simulation/infrastructure/engine/ticking-simulation-engine';
 import { FiveSecondCooldownPolicy } from '@simulation/infrastructure/policies/five-second-cooldown.policy';
@@ -55,6 +56,11 @@ interface GatewayWithServer {
   providers: [
     { provide: PORT_TOKENS.CLOCK, useClass: SystemClock },
     { provide: PORT_TOKENS.RANDOM_PROVIDER, useClass: CryptoRandomProvider },
+    {
+      provide: PORT_TOKENS.OWNERSHIP_TOKEN_GENERATOR,
+      useFactory: (random: RandomProvider) => new UuidOwnershipTokenGenerator(random),
+      inject: [PORT_TOKENS.RANDOM_PROVIDER],
+    },
     { provide: PORT_TOKENS.SIMULATION_REPOSITORY, useClass: InMemorySimulationRepository },
     { provide: PORT_TOKENS.COMMAND_BUS, useClass: InMemoryCommandBus },
     { provide: PORT_TOKENS.EVENT_BUS, useClass: InMemoryEventBus },
