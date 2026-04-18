@@ -47,10 +47,11 @@ async function shutdownIfPossible(bus: unknown): Promise<void> {
     {
       provide: PORT_TOKENS.SIMULATION_REPOSITORY,
       useFactory: async (config: ConfigService<AppConfig, true>) => {
-        const { createRedisClient } = await import('@shared/infrastructure/redis.client');
+        const { createRedisClient } = await import('../shared/infrastructure/redis.client');
         const { RedisSimulationRepository } =
-          await import('@simulation/infrastructure/persistence/redis-simulation.repository');
-        const { PRESET_MATCHES } = await import('@simulation/domain/value-objects/matches-preset');
+          await import('../simulation/infrastructure/persistence/redis-simulation.repository');
+        const { PRESET_MATCHES } =
+          await import('../simulation/domain/value-objects/matches-preset');
         const client = createRedisClient(config.get('REDIS_URL', { infer: true }));
         await client.connect();
         return new RedisSimulationRepository(client, PRESET_MATCHES);
@@ -60,7 +61,7 @@ async function shutdownIfPossible(bus: unknown): Promise<void> {
     {
       provide: PORT_TOKENS.COMMAND_BUS,
       useFactory: async (config: ConfigService<AppConfig, true>) => {
-        const { BullMQCommandBus } = await import('@shared/messaging/bullmq-command-bus');
+        const { BullMQCommandBus } = await import('../shared/messaging/bullmq-command-bus');
         return new BullMQCommandBus(config.get('REDIS_URL', { infer: true }));
       },
       inject: [ConfigService],
@@ -68,7 +69,7 @@ async function shutdownIfPossible(bus: unknown): Promise<void> {
     {
       provide: PORT_TOKENS.EVENT_BUS,
       useFactory: async (config: ConfigService<AppConfig, true>) => {
-        const { BullMQEventBus } = await import('@shared/messaging/bullmq-event-bus');
+        const { BullMQEventBus } = await import('../shared/messaging/bullmq-event-bus');
         return new BullMQEventBus(config.get('REDIS_URL', { infer: true }));
       },
       inject: [ConfigService],
@@ -77,7 +78,7 @@ async function shutdownIfPossible(bus: unknown): Promise<void> {
       provide: PORT_TOKENS.EVENT_PUBLISHER,
       useFactory: async (bus: EventBus) => {
         const { InMemoryEventPublisher } =
-          await import('@shared/messaging/in-memory-event-publisher');
+          await import('../shared/messaging/in-memory-event-publisher');
         return new InMemoryEventPublisher(bus);
       },
       inject: [PORT_TOKENS.EVENT_BUS],
