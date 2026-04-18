@@ -1,7 +1,6 @@
 import type { MatchDynamics, TimedEvent } from '@simulation/domain/ports/match-dynamics.port';
 import type { RandomProvider } from '@simulation/domain/ports/random-provider.port';
 import type { Simulation } from '@simulation/domain/aggregates/simulation';
-import type { CoreSimulationConfig } from '@simulation/domain/core-simulation-config';
 import { GoalScored } from '@simulation/domain/events/goal-scored';
 import { PRESET_TEAMS } from '@simulation/domain/value-objects/matches-preset';
 
@@ -18,11 +17,8 @@ export interface UniformDynamicsConfig {
 export class UniformRandomGoalDynamics implements MatchDynamics {
   constructor(
     private readonly random: RandomProvider,
-    core: CoreSimulationConfig,
     private readonly config: UniformDynamicsConfig,
-  ) {
-    void core; // advisory — future dynamics (Poisson, Markov) use durationMs to bound scheduling
-  }
+  ) {}
 
   async nextStep(simulation: Simulation, tickIndex: number): Promise<TimedEvent | undefined> {
     if (tickIndex >= this.config.goalCount) return undefined;

@@ -12,7 +12,6 @@ import { OwnershipToken } from '@ownership/domain/value-objects/ownership-token'
 import { PRESET_MATCHES } from '@simulation/domain/value-objects/matches-preset';
 import type { DomainEvent } from '@simulation/domain/events/domain-event';
 
-const CORE_CONFIG = { durationMs: 9000 };
 const DYNAMICS_CONFIG = { goalCount: 9, goalIntervalMs: 1000, firstGoalOffsetMs: 1000 };
 
 /** Advance FakeClock in small chunks so multi-await engine loop can chain. */
@@ -27,7 +26,7 @@ describe('Simulation engine — end-to-end (in-process, FakeClock)', () => {
   it('runs full 9-goal simulation in <100ms wall-clock via FakeClock', async () => {
     const clock = new FakeClock(new Date('2026-04-18T12:00:00Z'));
     const rng = new SeededRandomProvider(42);
-    const dynamics = new UniformRandomGoalDynamics(rng, CORE_CONFIG, DYNAMICS_CONFIG);
+    const dynamics = new UniformRandomGoalDynamics(rng, DYNAMICS_CONFIG);
     const engine = new TickingSimulationEngine(clock, dynamics);
     const repo = new InMemorySimulationRepository();
     const bus = new InMemoryEventBus();

@@ -110,15 +110,11 @@ async function shutdownIfPossible(bus: unknown): Promise<void> {
     {
       provide: PORT_TOKENS.MATCH_DYNAMICS,
       useFactory: (random: RandomProvider, config: ConfigService<AppConfig, true>) =>
-        new UniformRandomGoalDynamics(
-          random,
-          { durationMs: config.get('SIMULATION_DURATION_MS', { infer: true }) },
-          {
-            goalCount: config.get('GOAL_COUNT', { infer: true }),
-            goalIntervalMs: config.get('GOAL_INTERVAL_MS', { infer: true }),
-            firstGoalOffsetMs: config.get('FIRST_GOAL_OFFSET_MS', { infer: true }),
-          },
-        ),
+        new UniformRandomGoalDynamics(random, {
+          goalCount: config.get('GOAL_COUNT', { infer: true }),
+          goalIntervalMs: config.get('GOAL_INTERVAL_MS', { infer: true }),
+          firstGoalOffsetMs: config.get('FIRST_GOAL_OFFSET_MS', { infer: true }),
+        }),
       inject: [PORT_TOKENS.RANDOM_PROVIDER, ConfigService],
     },
     {
