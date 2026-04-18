@@ -32,22 +32,19 @@ async function mountBullBoard(app: INestApplication): Promise<void> {
   const { createBullBoard } = await import('@bull-board/api');
   const { BullMQAdapter } = await import('@bull-board/api/bullMQAdapter');
   const { ExpressAdapter } = await import('@bull-board/express');
-  const { PORT_TOKENS } = await import('./simulation/domain/ports/tokens');
-  const { BullMQCommandBus } = await import('./shared/messaging/bullmq-command-bus');
-  const { BullMQEventBus } = await import('./shared/messaging/bullmq-event-bus');
+  const { Queue } = await import('bullmq');
 
-  const commandBus = app.get(PORT_TOKENS.COMMAND_BUS);
-  const eventBus = app.get(PORT_TOKENS.EVENT_BUS);
-  const adapters: InstanceType<typeof BullMQAdapter>[] = [];
+  const config = app.get<ConfigService<AppConfig, true>>(ConfigService);
+  const redisUrl = config.get('REDIS_URL', { infer: true });
+  const parsed = new URL(redisUrl);
+  const connection = { host: parsed.hostname, port: Number(parsed.port || 6379) };
 
-  if (commandBus instanceof BullMQCommandBus) {
-    for (const [, queue] of commandBus.getQueues()) {
-      adapters.push(new BullMQAdapter(queue));
-    }
-  }
-  if (eventBus instanceof BullMQEventBus) {
-    adapters.push(new BullMQAdapter(eventBus.getQueue()));
-  }
+  // Create independent Queue instances pointing at the same Redis — Bull Board
+  // reads stats via Redis, not via object identity. This ensures all 3 known
+  // topics are visible from the moment UI opens, even before any job flows.
+  const queueNames = ['simulation.run.default', 'simulation.abort', 'simulation.events'];
+  const queues = queueNames.map((name) => new Queue(name, { connection }));
+  const adapters = queues.map((q) => new BullMQAdapter(q));
 
   const serverAdapter = new ExpressAdapter();
   serverAdapter.setBasePath('/queues');
