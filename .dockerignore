@@ -1,0 +1,14 @@
+node_modules
+dist
+coverage
+.git
+.github
+.env
+.env.local
+*.log
+.vscode
+.idea
+docs
+*.md
+!README.md
+TS-Coding-task.pdf
