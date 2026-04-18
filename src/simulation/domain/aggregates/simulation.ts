@@ -8,6 +8,7 @@ import { InvalidStateError, type SimulationState } from '../errors/invalid-state
 import type { DomainEvent } from '../events/domain-event';
 import { SimulationStarted } from '../events/simulation-started';
 import { GoalScored } from '../events/goal-scored';
+import { SimulationFinished, type FinishReason } from '../events/simulation-finished';
 
 export interface SimulationSnapshot {
   readonly id: string;
@@ -76,6 +77,17 @@ export class Simulation {
     this.totalGoals++;
     this.pendingEvents.push(
       new GoalScored(this.id, teamId, this.score.snapshot(), this.totalGoals, now),
+    );
+  }
+
+  finish(reason: FinishReason, now: Date): void {
+    if (this.state !== 'RUNNING') {
+      throw new InvalidStateError(this.state, 'finish');
+    }
+    this.state = 'FINISHED';
+    this.finishedAt = now;
+    this.pendingEvents.push(
+      new SimulationFinished(this.id, reason, this.score.snapshot(), this.totalGoals, now),
     );
   }
 
