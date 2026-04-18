@@ -1,8 +1,15 @@
+import type { Simulation } from '../aggregates/simulation';
+import type { SimulationId } from '../value-objects/simulation-id';
+import type { OwnershipToken } from '@ownership/domain/value-objects/ownership-token';
+
 /**
- * Persistence abstraction for Simulation aggregate.
- * Phase 1 will define: save, findById, findAll.
+ * Persistence port for Simulation aggregate.
+ * Default impl: InMemorySimulationRepository (Phase 1b). Future: PostgresSimulationRepository (Phase 4).
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface SimulationRepository {
-  // Phase 1 signature
+  save(simulation: Simulation): Promise<void>;
+  findById(id: SimulationId): Promise<Simulation | null>;
+  findAll(): Promise<readonly Simulation[]>;
+  findByOwner(token: OwnershipToken): Promise<readonly Simulation[]>;
+  delete(id: SimulationId): Promise<void>;
 }

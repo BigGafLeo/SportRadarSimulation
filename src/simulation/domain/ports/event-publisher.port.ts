@@ -1,8 +1,9 @@
+import type { DomainEvent } from '../events/domain-event';
+
 /**
- * Domain event publication port.
- * Phase 1 will define: publish(event: DomainEvent, meta?: EventMeta): Promise<void>.
+ * Domain event publication port (observer-facing).
+ * Default impl: InMemoryEventPublisher wrapping EventBus (Phase 1b).
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface EventPublisher {
-  // Phase 1 signature
+  publish(event: DomainEvent): Promise<void>;
 }

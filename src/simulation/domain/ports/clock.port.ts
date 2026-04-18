@@ -1,8 +1,8 @@
 /**
  * Time abstraction port.
- * Phase 1 will define: now(): Date, sleep(ms: number): Promise<void>.
+ * Default impl: SystemClock (Phase 1b). Test impl: FakeClock with advance(ms).
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface Clock {
-  // Phase 1 signature
+  now(): Date;
+  sleep(ms: number, signal?: AbortSignal): Promise<void>;
 }
