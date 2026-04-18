@@ -2,7 +2,7 @@
 
 Zadanie rekrutacyjne SportRadar: REST + WebSocket API do symulacji meczów piłkarskich.
 
-**Status**: Phase 0 (scaffolding) — struktura projektu gotowa, domain logic w Phase 1.
+**Status**: Phase 1 MVP complete (tag `v1.0-mvp-in-process`). Pełna funkcjonalność z PDFa + beyond (multi-simulation, REST + WebSocket, 185+ testów).
 
 ## Stack
 
@@ -61,6 +61,28 @@ Wszystkie env vars są zdefiniowane i walidowane przez Zod w `src/shared/config/
 | `START_COOLDOWN_MS` | `5000` | Throttle między ignition events per owner |
 | `FINISHED_RETENTION_MS` | `3600000` | TTL dla FINISHED simulations (GC) |
 | `GC_INTERVAL_MS` | `300000` | Częstotliwość GC worker'a |
+
+## Requirements → Test mapping
+
+Źródłowy spec wymagań: `TS-Coding-task.pdf` (gitignored lokalnie). Każde z 7 wymagań jest pokryte jawnym testem:
+
+| Req # | Wymaganie | Test file(s) |
+|---|---|---|
+| 1 | Start / Finish / Restart | `test/integration/http-lifecycle.e2e-spec.ts`, `test/integration/http-manual-finish.e2e-spec.ts`, `test/integration/http-restart.e2e-spec.ts` |
+| 2 | Name 8-30 znaków, Unicode letters/digits/spaces | `test/unit/domain/value-objects/simulation-name.spec.ts` + `test/integration/http-throttle-validation.e2e-spec.ts` |
+| 3 | Start nie częściej niż raz na 5s | `test/unit/infrastructure/policies/five-second-cooldown.policy.spec.ts` + `test/integration/http-throttle-validation.e2e-spec.ts` |
+| 4 | 9 sekund, auto-stop | `test/integration/simulation-engine-end-to-end.spec.ts` + `test/integration/http-lifecycle.e2e-spec.ts` |
+| 5 | Manual finish przed 9s | `test/integration/http-manual-finish.e2e-spec.ts` |
+| 6 | Gol co 1s, losowa drużyna, 9 total, push events | `test/unit/infrastructure/dynamics/uniform-random-goal-dynamics.spec.ts` + `test/e2e/ws-goal-observer.e2e-spec.ts` |
+| 7 | Restart resetuje wyniki | `test/unit/domain/aggregates/simulation.spec.ts` + `test/integration/http-restart.e2e-spec.ts` |
+
+Dodatkowo:
+- Multi-observer WS broadcast: `test/e2e/ws-multi-observer.e2e-spec.ts`
+- Ownership/authorization: `test/integration/http-manual-finish.e2e-spec.ts`
+- Domain invariants (state machine): `test/unit/domain/aggregates/simulation.spec.ts`
+- Engine + Dynamics end-to-end z FakeClock: `test/integration/simulation-engine-end-to-end.spec.ts`
+
+**Stan testów**: 185 passed, 38 suites, <10s runtime.
 
 ## Architecture
 
