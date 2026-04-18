@@ -1,0 +1,14 @@
+# Normalize all text files to LF line endings on commit and checkout.
+# This matches Prettier's endOfLine: "lf" rule in .prettierrc and eliminates
+# the Windows CRLF/LF drift that breaks lint.
+
+* text=auto eol=lf
+
+# Binary files — never touch line endings
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
