@@ -1,4 +1,5 @@
 import { Simulation } from '@simulation/domain/aggregates/simulation';
+import { InvalidStateError } from '@simulation/domain/errors/invalid-state.error';
 import { SimulationId } from '@simulation/domain/value-objects/simulation-id';
 import { SimulationName } from '@simulation/domain/value-objects/simulation-name';
 import type { SimulationSnapshot } from '@simulation/domain/aggregates/simulation';
@@ -112,12 +113,12 @@ export class SimulationOrchestrator {
     await this.requireKnownToken(input.ownershipToken);
     this.assertOwnership(sim, input.ownershipToken);
     // State check before throttle: a RUNNING sim cannot be restarted regardless of cooldown.
-    if (sim.toSnapshot().state !== 'FINISHED') {
-      sim.restart(this.deps.clock.now()); // throws InvalidStateError → 409
+    const snapshot = sim.toSnapshot();
+    if (snapshot.state !== 'FINISHED') {
+      throw new InvalidStateError(snapshot.state, 'restart');
     }
     const now = this.deps.clock.now();
     await this.ensureCanIgnite(input.ownershipToken, now);
-
     sim.restart(now);
     await this.deps.simulationRepository.save(sim);
     await this.deps.ownershipRepository.updateLastIgnitionAt(input.ownershipToken, now);
