@@ -171,3 +171,58 @@ describe('Simulation.finish', () => {
     expect(sim.toSnapshot().state).toBe('FINISHED');
   });
 });
+
+describe('Simulation.restart', () => {
+  const id = SimulationId.create('550e8400-e29b-41d4-a716-446655440000');
+  const token = OwnershipToken.create('550e8400-e29b-41d4-a716-446655440001');
+  const name = SimulationName.create('Katar 2023');
+  const start = new Date('2026-04-18T12:00:00Z');
+
+  function finished(): Simulation {
+    const sim = Simulation.create({
+      id,
+      ownerToken: token,
+      name,
+      matches: PRESET_MATCHES,
+      profileId: 'default',
+      now: start,
+    });
+    sim.applyGoal(TeamId.create('germany'), new Date(start.getTime() + 1000));
+    sim.applyGoal(TeamId.create('poland'), new Date(start.getTime() + 2000));
+    sim.finish('manual', new Date(start.getTime() + 5000));
+    sim.pullEvents();
+    return sim;
+  }
+
+  it('transitions FINISHED -> RUNNING, resets score and totalGoals', () => {
+    const sim = finished();
+    const restartAt = new Date(start.getTime() + 10000);
+    sim.restart(restartAt);
+    const snap = sim.toSnapshot();
+    expect(snap.state).toBe('RUNNING');
+    expect(snap.totalGoals).toBe(0);
+    expect(snap.score.every((s) => s.home === 0 && s.away === 0)).toBe(true);
+    expect(snap.startedAt).toEqual(restartAt);
+    expect(snap.finishedAt).toBeNull();
+  });
+
+  it('emits SimulationRestarted', () => {
+    const sim = finished();
+    sim.restart(new Date(start.getTime() + 10000));
+    const events = sim.pullEvents();
+    expect(events).toHaveLength(1);
+    expect(events[0].type).toBe('SimulationRestarted');
+  });
+
+  it('rejects restart when RUNNING', () => {
+    const sim = Simulation.create({
+      id,
+      ownerToken: token,
+      name,
+      matches: PRESET_MATCHES,
+      profileId: 'default',
+      now: start,
+    });
+    expect(() => sim.restart(new Date())).toThrow(InvalidStateError);
+  });
+});

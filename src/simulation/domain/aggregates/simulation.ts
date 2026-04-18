@@ -9,6 +9,7 @@ import type { DomainEvent } from '../events/domain-event';
 import { SimulationStarted } from '../events/simulation-started';
 import { GoalScored } from '../events/goal-scored';
 import { SimulationFinished, type FinishReason } from '../events/simulation-finished';
+import { SimulationRestarted } from '../events/simulation-restarted';
 
 export interface SimulationSnapshot {
   readonly id: string;
@@ -89,6 +90,18 @@ export class Simulation {
     this.pendingEvents.push(
       new SimulationFinished(this.id, reason, this.score.snapshot(), this.totalGoals, now),
     );
+  }
+
+  restart(now: Date): void {
+    if (this.state !== 'FINISHED') {
+      throw new InvalidStateError(this.state, 'restart');
+    }
+    this.state = 'RUNNING';
+    this.score = this.score.reset();
+    this.totalGoals = 0;
+    this.startedAt = now;
+    this.finishedAt = null;
+    this.pendingEvents.push(new SimulationRestarted(this.id, now));
   }
 
   toSnapshot(): SimulationSnapshot {
