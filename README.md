@@ -2,7 +2,7 @@
 
 Zadanie rekrutacyjne SportRadar: REST + WebSocket API do symulacji meczów piłkarskich.
 
-**Status**: Phase 1 MVP complete (tag `v1.0-mvp-in-process`). Pełna funkcjonalność z PDFa + beyond (multi-simulation, REST + WebSocket, 185+ testów).
+**Status**: Phase 2 distributed (tag `v2.0-bullmq-distributed`). BullMQ + Redis transport, workers jako osobne procesy. Pełna funkcjonalność z PDFa + beyond (multi-simulation, REST + WebSocket, 206+ testów).
 
 ## Stack
 
@@ -24,10 +24,31 @@ npm ci
 npm run start:dev    # http://localhost:3000
 ```
 
-### Docker
+### Docker (Phase 1 single-process — tag v1.0-mvp-in-process)
+
+```bash
+git checkout v1.0-mvp-in-process
+docker compose up --build
+```
+
+### Distributed mode (Phase 2+ — default on main)
+
+Full stack via docker-compose (orchestrator + N workers + Redis):
 
 ```bash
 docker compose up --build
+# http://localhost:3000 — orchestrator (REST + WS)
+# http://localhost:3000/queues — Bull Board UI (live queue inspection)
+```
+
+Scale workers:
+```bash
+docker compose up -d --scale worker=4 --build
+```
+
+Single-process mode (Phase 1 style) via env:
+```bash
+TRANSPORT_MODE=inmemory PERSISTENCE_MODE=inmemory npm run start:dev
 ```
 
 ### Testy
