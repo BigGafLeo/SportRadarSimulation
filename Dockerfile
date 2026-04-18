@@ -28,6 +28,7 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV APP_MODE=orchestrator
 
 # Create non-root user
 RUN addgroup -S app && adduser -S app -G app
@@ -40,4 +41,7 @@ USER app
 
 EXPOSE 3000
 
-CMD ["node", "dist/main.js"]
+# APP_MODE env selects which entrypoint to run:
+# - orchestrator (default): dist/main.js — HTTP + WS + Bull Board
+# - worker: dist/worker.main.js — BullMQ consumer only
+CMD ["sh", "-c", "if [ \"$APP_MODE\" = \"worker\" ]; then node dist/worker.main.js; else node dist/main.js; fi"]

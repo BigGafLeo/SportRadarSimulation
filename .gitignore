@@ -34,3 +34,6 @@ Thumbs.db
 
 # Task source (kept locally only, not in repo)
 /TS-Coding-task.pdf
+
+# Local demo scripts (ad-hoc, not shipped)
+/scripts/
