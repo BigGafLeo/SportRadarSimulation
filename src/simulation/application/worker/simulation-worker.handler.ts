@@ -70,6 +70,9 @@ export class SimulationWorkerHandler {
       SimulationId.create(cmd.simulationId),
     );
     if (!sim) return;
+    // TODO(phase-6): replace with Pino structured logger.
+    // eslint-disable-next-line no-console
+    console.log(`[worker] handleRun: simulationId=${cmd.simulationId} profile=${cmd.profileId}`);
 
     const controller = new AbortController();
     const runPromise = this.deps.engine
@@ -93,6 +96,9 @@ export class SimulationWorkerHandler {
   private async handleAbort(cmd: AbortSimulationCommand): Promise<void> {
     const inflight = this.inFlight.get(cmd.simulationId);
     if (!inflight) return;
+    // TODO(phase-6): replace with Pino structured logger.
+    // eslint-disable-next-line no-console
+    console.log(`[worker] handleAbort: simulationId=${cmd.simulationId}`);
 
     inflight.controller.abort();
     await inflight.runPromise.catch(() => undefined);
