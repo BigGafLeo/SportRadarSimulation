@@ -1,4 +1,5 @@
 import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
+import { DomainError } from '@simulation/domain/errors/domain.error';
 import { InvalidStateError } from '@simulation/domain/errors/invalid-state.error';
 import { InvalidValueError } from '@simulation/domain/errors/invalid-value.error';
 import {
@@ -16,9 +17,9 @@ interface ErrorBody {
   };
 }
 
-@Catch()
-export class DomainExceptionFilter implements ExceptionFilter {
-  catch(exception: unknown, host: ArgumentsHost): void {
+@Catch(DomainError)
+export class DomainExceptionFilter implements ExceptionFilter<DomainError> {
+  catch(exception: DomainError, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<{
       status: (code: number) => { json: (body: ErrorBody) => void };
     }>();
@@ -77,9 +78,7 @@ export class DomainExceptionFilter implements ExceptionFilter {
       });
       return;
     }
-    const message = exception instanceof Error ? exception.message : 'unknown error';
-    response.status(500).json({
-      error: { code: 'INTERNAL', message },
-    });
+    // Unknown DomainError subclass: rethrow so NestJS default handler emits 500.
+    throw exception;
   }
 }

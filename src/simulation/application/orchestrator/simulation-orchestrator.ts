@@ -99,6 +99,7 @@ export class SimulationOrchestrator {
 
   async finishSimulation(input: FinishSimulationInput): Promise<void> {
     const sim = await this.findSimulationOrThrow(input.simulationId);
+    await this.requireKnownToken(input.ownershipToken);
     this.assertOwnership(sim, input.ownershipToken);
     await this.deps.commandBus.dispatch(
       SIMULATION_TOPICS.ABORT,
@@ -108,7 +109,12 @@ export class SimulationOrchestrator {
 
   async restartSimulation(input: RestartSimulationInput): Promise<void> {
     const sim = await this.findSimulationOrThrow(input.simulationId);
+    await this.requireKnownToken(input.ownershipToken);
     this.assertOwnership(sim, input.ownershipToken);
+    // State check before throttle: a RUNNING sim cannot be restarted regardless of cooldown.
+    if (sim.toSnapshot().state !== 'FINISHED') {
+      sim.restart(this.deps.clock.now()); // throws InvalidStateError → 409
+    }
     const now = this.deps.clock.now();
     await this.ensureCanIgnite(input.ownershipToken, now);
 
@@ -162,6 +168,13 @@ export class SimulationOrchestrator {
     }
     if (!this.deps.throttlePolicy.canIgnite(token, rec.lastIgnitionAt, now)) {
       throw new ThrottledError(this.deps.config.startCooldownMs);
+    }
+  }
+
+  private async requireKnownToken(token: OwnershipToken): Promise<void> {
+    const rec = await this.deps.ownershipRepository.findByToken(token);
+    if (!rec) {
+      throw new UnknownTokenError(token.value);
     }
   }
 
