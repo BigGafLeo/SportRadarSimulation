@@ -1,8 +1,9 @@
+import type { Simulation } from '../aggregates/simulation';
+
 /**
  * GC policy for FINISHED simulations.
- * Phase 1 will define: shouldRemove(sim, now): boolean or similar.
+ * Default impl: TtlRetentionPolicy(1h) — Phase 1b.
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface RetentionPolicy {
-  // Phase 1 signature
+  shouldRemove(simulation: Simulation, now: Date): boolean;
 }

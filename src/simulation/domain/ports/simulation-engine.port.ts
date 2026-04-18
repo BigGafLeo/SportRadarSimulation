@@ -1,8 +1,18 @@
+import type { Simulation } from '../aggregates/simulation';
+import type { DomainEvent } from '../events/domain-event';
+
 /**
- * Simulation runtime port (timing loop, abort handling).
- * Phase 1 will define: run(sim, emit, signal): Promise<void>.
+ * Simulation runtime port (streaming-based per design spec §6.3).
+ * Default impl: TickingSimulationEngine (Phase 1b). Injects: Clock + MatchDynamics.
+ *
+ * run() drives the ticking loop until either MatchDynamics.nextStep returns undefined
+ * (natural completion, engine emits SimulationFinished with reason 'auto') or signal aborts
+ * (manual finish — engine returns without emitting; orchestrator emits finished with reason 'manual').
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface SimulationEngine {
-  // Phase 1 signature
+  run(
+    simulation: Simulation,
+    emit: (event: DomainEvent) => Promise<void>,
+    signal: AbortSignal,
+  ): Promise<void>;
 }

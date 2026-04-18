@@ -1,8 +1,9 @@
+import type { OwnershipToken } from '@ownership/domain/value-objects/ownership-token';
+
 /**
- * Ignition throttle rules (5s cooldown per owner).
- * Phase 1 will define: canIgnite(ownerId, now): boolean.
+ * Ignition throttle rule (5s cooldown per token; per-user in Phase 4+).
+ * Default impl: FiveSecondCooldownPolicy — Phase 1b.
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ThrottlePolicy {
-  // Phase 1 signature
+  canIgnite(token: OwnershipToken, lastIgnitionAt: Date | null, now: Date): boolean;
 }
