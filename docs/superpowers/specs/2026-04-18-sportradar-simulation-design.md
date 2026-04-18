@@ -606,13 +606,21 @@ Reszta (batch, admin injection, ML-dynamics) = extension points visible in code,
 **Tag**: `v6.0-ops-ready`
 
 - Health checks `/healthz` + `/readyz` via `@nestjs/terminus` (Redis + DB + worker heartbeat)
+- **Profile readiness gate** — orchestrator pollsuje `getWorkers()` per profile topic, cache `Map<profileId, hasLiveWorker>`. `POST /simulations { profile }` zwraca `503 SERVICE_UNAVAILABLE` jeśli żaden worker nie subskrybuje `simulation.run.{profile}`. Zastępuje "lazy/pending" zachowanie z Phase 3 (gdzie joby tylko wisiały w queue cicho).
 - Structured logging (Pino) + correlation id middleware (propagowany przez commands)
 - OpenAPI / Swagger auto-generated z Zod schemas
 - OpenTelemetry instrumentation setup (hooks, metric impl opcjonalny)
 - Graceful shutdown (SIGTERM handler: drain queues, close WS, finalize transactions)
 - (Optional) Prometheus metrics: active simulations, goals/sec, throttle hits, worker utilization
+- **Kubernetes migration kit** — Helm chart (lub raw manifests) za docker-compose:
+  - 1 Deployment per profile (1:1 z compose worker-* services), HPA per profile
+  - StatefulSet dla Redis (lub external managed Redis)
+  - Service + Ingress dla orchestratora, headless service dla WS sticky session
+  - ConfigMap z env vars, Secret z REDIS_URL/DB credentials
+  - Probes wpięte w `/healthz` + `/readyz`
+  - To rzeczywista path z compose → prod, nie tylko "future". Phase 6 traktuje k8s jako equal-tier deployment target.
 - README: architecture deep-dive, ADR sheet, runbook
-- **Demo**: "application feels production-ready. Swagger UI, Bull Board, health checks dla k8s"
+- **Demo**: "application feels production-ready. Swagger UI, Bull Board, health checks dla k8s, helm install go"
 
 ---
 
