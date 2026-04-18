@@ -7,6 +7,25 @@ Projekt używa [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added (Phase 1b — infrastructure adapters, 2026-04-18)
+- Clock adapters: `SystemClock` (setTimeout + AbortSignal), `FakeClock` (deterministic `advance(ms)` for tests)
+- Random adapters: `CryptoRandomProvider` (node:crypto), `SeededRandomProvider` (LCG, deterministic)
+- Persistence: `InMemorySimulationRepository`, `InMemoryOwnershipRepository`
+- Token generator: `UuidOwnershipTokenGenerator` (delegates to RandomProvider)
+- Policies: `FiveSecondCooldownPolicy`, `TtlRetentionPolicy`
+- Domain type `SimulationConfig` (timing config for Engine/Dynamics)
+- `UniformRandomGoalDynamics`: uniform 1/6 selection from `PRESET_TEAMS`, 9 goals
+- `TickingSimulationEngine`: streaming tick loop with intent-dispatch to aggregate + abort handling
+- Messaging: `InMemoryCommandBus`, `InMemoryEventBus`, `InMemoryEventPublisher`
+- ADR-001: `MatchDynamics.nextStep.event` is an intent, not the final emitted event (intent-pattern)
+- Integration test: full 9-goal flow completes in ~13ms wall-clock via FakeClock
+- 65 new unit tests + 1 integration test (total 133)
+
+### Phase 1b status
+- Branch: `phase-1-mvp-in-process` (continues)
+- Still no tag — `v1.0-mvp-in-process` is created after Phase 1c (Application + Gateway + E2E)
+- Next: Phase 1c — SimulationOrchestrator + REST/WS gateway + integration/E2E tests
+
 ### Added (Phase 1a — domain layer, 2026-04-18)
 - Value Objects with Zod validation: `TeamId`, `MatchId`, `Team`, `Match`, `SimulationId`, `SimulationName` (Unicode letters/digits/spaces regex + no-trim rule), `ScoreBoard` (immutable operations), `OwnershipToken`
 - `PRESET_MATCHES` constant: Germany vs Poland, Brazil vs Mexico, Argentina vs Uruguay (PDF requirement)
