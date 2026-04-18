@@ -21,6 +21,7 @@ import { shutdownIfPossible } from '@shared/messaging/shutdown.util';
 import { SimulationOrchestrator } from '@simulation/application/orchestrator/simulation-orchestrator';
 import { SimulationWorkerHandler } from '@simulation/application/worker/simulation-worker.handler';
 import { SimulationController } from '@simulation/infrastructure/consumer/http/simulation.controller';
+import { AdminController } from '@simulation/infrastructure/consumer/http/admin.controller';
 import { DomainExceptionFilter } from '@simulation/infrastructure/consumer/http/domain-exception.filter';
 import { SimulationGateway } from '@simulation/infrastructure/consumer/ws/simulation.gateway';
 import { WsEventForwarder } from '@simulation/infrastructure/consumer/ws/ws-event-forwarder';
@@ -42,7 +43,7 @@ interface GatewayWithServer {
 
 @Module({
   imports: [OwnershipModule],
-  controllers: [SimulationController],
+  controllers: [SimulationController, AdminController],
   providers: [
     {
       provide: PORT_TOKENS.CLOCK,

@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SportRadar • Simulation Infrastructure</title>
+    <link rel="stylesheet" href="/dashboard/dashboard.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">◉</span>
+        <span class="brand-title">SportRadar</span>
+        <span class="brand-sub">Simulation Infrastructure</span>
+      </div>
+      <div class="modes">
+        <span class="pill" id="mode-transport">transport: ?</span>
+        <span class="pill" id="mode-persistence">persistence: ?</span>
+      </div>
+      <button class="btn btn-primary" id="btn-new-sim">+ New simulation</button>
+      <div class="status">
+        <span class="dot" id="ws-dot"></span>
+        <span class="status-label" id="ws-label">disconnected</span>
+        <span class="status-sep">·</span>
+        <span class="status-label" id="poll-label">poll ?ms</span>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="panel panel-queues">
+        <h2 class="panel-title">
+          Queues
+          <span class="panel-hint">BullMQ jobs per topic</span>
+        </h2>
+        <div class="panel-body" id="queues">
+          <div class="empty">waiting for stats…</div>
+        </div>
+      </section>
+
+      <section class="panel panel-workers">
+        <h2 class="panel-title">
+          Workers
+          <span class="panel-hint">live Redis clients</span>
+        </h2>
+        <div class="panel-body" id="workers">
+          <div class="empty">waiting for stats…</div>
+        </div>
+      </section>
+
+      <section class="panel panel-simulations">
+        <h2 class="panel-title">
+          Simulations
+          <span class="panel-hint" id="sim-summary">0 running · 0 finished</span>
+        </h2>
+        <div class="panel-body" id="simulations">
+          <div class="empty">no simulations yet — click "+ New simulation" or run <code>node scripts/demo.mjs load</code></div>
+        </div>
+      </section>
+
+      <section class="panel panel-events">
+        <h2 class="panel-title">
+          Live events
+          <span class="panel-hint" id="events-count">0 events</span>
+        </h2>
+        <div class="panel-body event-feed" id="events">
+          <div class="empty">listening on admin:all…</div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="detail-panel" id="detail-panel" hidden>
+      <header class="detail-head">
+        <div class="detail-title">
+          <span id="detail-name">—</span>
+          <span class="profile-badge" id="detail-profile">—</span>
+        </div>
+        <button class="btn-icon" id="detail-close" title="Close (Esc)">×</button>
+      </header>
+      <div class="detail-body" id="detail-body">
+        <div class="empty">loading…</div>
+      </div>
+    </aside>
+
+    <dialog class="modal" id="new-sim-modal">
+      <form method="dialog" id="new-sim-form">
+        <h3 class="modal-title">Start simulations</h3>
+        <label class="form-field">
+          <span>Base name</span>
+          <input
+            type="text"
+            id="new-sim-name"
+            minlength="1"
+            maxlength="18"
+            pattern="[\p{L}\p{N} ]+"
+            required
+            placeholder="e.g. Match Test"
+          />
+          <small class="form-hint">letters/digits/spaces. Final name = "Base profile N" (e.g. "Match Test poisson 3")</small>
+        </label>
+        <fieldset class="form-field profile-counts">
+          <legend>Per-profile counts</legend>
+          <div class="profile-row">
+            <span class="profile-badge uniform">uniform-realtime</span>
+            <input type="number" data-profile="uniform-realtime" min="0" max="50" step="1" value="0" />
+          </div>
+          <div class="profile-row">
+            <span class="profile-badge poisson">poisson-accelerated</span>
+            <input type="number" data-profile="poisson-accelerated" min="0" max="50" step="1" value="0" />
+          </div>
+          <div class="profile-row">
+            <span class="profile-badge markov">fast-markov</span>
+            <input type="number" data-profile="fast-markov" min="0" max="50" step="1" value="0" />
+          </div>
+          <small class="form-hint">0–50 per profile. Total max 100. Each gets fresh ownership token.</small>
+        </fieldset>
+        <div class="form-error" id="new-sim-error" hidden></div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost" id="new-sim-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="new-sim-submit" disabled>Start 0</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+    <script src="/dashboard/dashboard.js" defer></script>
+  </body>
+</html>

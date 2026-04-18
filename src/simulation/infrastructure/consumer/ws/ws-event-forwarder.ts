@@ -1,7 +1,7 @@
 import type { EventBus } from '@shared/messaging/event-bus.port';
 import type { Subscription } from '@shared/messaging/command-bus.port';
 import type { DomainEvent } from '@simulation/domain/events/domain-event';
-import { roomName } from './simulation.gateway';
+import { ADMIN_ROOM, roomName } from './simulation.gateway';
 
 interface BroadcastServer {
   to(room: string): { emit(event: string, payload: unknown): void };
@@ -33,7 +33,10 @@ export class WsEventForwarder {
         if (!meta.simulationId) return;
         const wsEventName = EVENT_NAME_BY_TYPE[event.type];
         if (!wsEventName) return;
-        this.getServer().to(roomName(meta.simulationId)).emit(wsEventName, eventPayload(event));
+        const payload = eventPayload(event);
+        const server = this.getServer();
+        server.to(roomName(meta.simulationId)).emit(wsEventName, payload);
+        server.to(ADMIN_ROOM).emit(wsEventName, payload);
       },
     );
   }

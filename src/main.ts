@@ -1,6 +1,9 @@
 import 'reflect-metadata';
+import { join } from 'node:path';
+import { existsSync } from 'node:fs';
 import type { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { ZodValidationPipe } from 'nestjs-zod';
@@ -10,10 +13,11 @@ import { PROFILE_IDS } from './simulation/infrastructure/profiles/profile-regist
 import { SIMULATION_TOPICS } from './simulation/application/commands/simulation-topics';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.useGlobalPipes(new ZodValidationPipe());
   app.useWebSocketAdapter(new IoAdapter(app));
   app.enableShutdownHooks();
+  mountDashboardStatics(app);
 
   const config = app.get<ConfigService<AppConfig, true>>(ConfigService);
   const transportMode = config.get('TRANSPORT_MODE', { infer: true });
@@ -28,6 +32,18 @@ async function bootstrap(): Promise<void> {
   // TODO(phase-6): replace with Pino logger.
   // eslint-disable-next-line no-console
   console.log(`Application is running on port ${port} (transport: ${transportMode})`);
+}
+
+function mountDashboardStatics(app: NestExpressApplication): void {
+  // __dirname = dist/src when built, src when using ts-node. Try both.
+  const candidates = [
+    join(__dirname, '..', '..', 'public'),
+    join(__dirname, '..', 'public'),
+    join(process.cwd(), 'public'),
+  ];
+  const publicDir = candidates.find((p) => existsSync(p));
+  if (!publicDir) return;
+  app.useStaticAssets(publicDir, { prefix: '/dashboard' });
 }
 
 async function mountBullBoard(app: INestApplication): Promise<void> {

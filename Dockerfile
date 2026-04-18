@@ -36,6 +36,7 @@ RUN addgroup -S app && adduser -S app -G app
 COPY --chown=app:app --from=deps /app/node_modules ./node_modules
 COPY --chown=app:app --from=builder /app/dist ./dist
 COPY --chown=app:app package.json ./
+COPY --chown=app:app public ./public
 
 USER app
 
