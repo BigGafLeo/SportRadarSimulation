@@ -1,17 +1,55 @@
-# Phase 0 skeleton — only application service.
-# Phase 2 will add: redis (for BullMQ), workers (N per profile).
+# Phase 2 — distributed mode with Redis + worker replicas.
 # Phase 4 will add: postgres.
 
 services:
-  app:
+  redis:
+    image: redis:7-alpine
+    container_name: sportradar-redis
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  orchestrator:
     build:
       context: .
       dockerfile: Dockerfile
     image: sportradar-simulation:local
-    container_name: sportradar-app
+    container_name: sportradar-orchestrator
+    depends_on:
+      redis:
+        condition: service_healthy
     ports:
       - '3000:3000'
     environment:
       # Only override values that differ from Zod defaults in src/shared/config/config.schema.ts.
       NODE_ENV: development
+      APP_MODE: orchestrator
+      TRANSPORT_MODE: bullmq
+      PERSISTENCE_MODE: redis
+      REDIS_URL: redis://redis:6379
+      BULL_BOARD_ENABLED: 'true'
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sportradar-simulation:local
+    depends_on:
+      redis:
+        condition: service_healthy
+      orchestrator:
+        condition: service_started
+    environment:
+      NODE_ENV: development
+      APP_MODE: worker
+      TRANSPORT_MODE: bullmq
+      PERSISTENCE_MODE: redis
+      REDIS_URL: redis://redis:6379
+    deploy:
+      replicas: 2
     restart: unless-stopped

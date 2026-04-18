@@ -77,11 +77,10 @@ async function shutdownIfPossible(bus: unknown): Promise<void> {
       useFactory: async (config: ConfigService<AppConfig, true>) => {
         const mode = config.get('PERSISTENCE_MODE', { infer: true });
         if (mode === 'redis') {
-          const { createRedisClient } = await import('@shared/infrastructure/redis.client');
+          const { createRedisClient } = await import('../shared/infrastructure/redis.client');
           const { RedisSimulationRepository } =
-            await import('@simulation/infrastructure/persistence/redis-simulation.repository');
-          const { PRESET_MATCHES } =
-            await import('@simulation/domain/value-objects/matches-preset');
+            await import('./infrastructure/persistence/redis-simulation.repository');
+          const { PRESET_MATCHES } = await import('./domain/value-objects/matches-preset');
           const client = createRedisClient(config.get('REDIS_URL', { infer: true }));
           await client.connect();
           return new RedisSimulationRepository(client, PRESET_MATCHES);
@@ -95,7 +94,7 @@ async function shutdownIfPossible(bus: unknown): Promise<void> {
       useFactory: async (config: ConfigService<AppConfig, true>) => {
         const mode = config.get('TRANSPORT_MODE', { infer: true });
         if (mode === 'bullmq') {
-          const { BullMQCommandBus } = await import('@shared/messaging/bullmq-command-bus');
+          const { BullMQCommandBus } = await import('../shared/messaging/bullmq-command-bus');
           return new BullMQCommandBus(config.get('REDIS_URL', { infer: true }));
         }
         return new InMemoryCommandBus();
@@ -107,7 +106,7 @@ async function shutdownIfPossible(bus: unknown): Promise<void> {
       useFactory: async (config: ConfigService<AppConfig, true>) => {
         const mode = config.get('TRANSPORT_MODE', { infer: true });
         if (mode === 'bullmq') {
-          const { BullMQEventBus } = await import('@shared/messaging/bullmq-event-bus');
+          const { BullMQEventBus } = await import('../shared/messaging/bullmq-event-bus');
           return new BullMQEventBus(config.get('REDIS_URL', { infer: true }));
         }
         return new InMemoryEventBus();
