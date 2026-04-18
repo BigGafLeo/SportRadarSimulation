@@ -1,11 +1,13 @@
 import type { SimulationId } from '../value-objects/simulation-id';
 import type { SimulationName } from '../value-objects/simulation-name';
 import type { Match } from '../value-objects/match';
+import type { TeamId } from '../value-objects/team-id';
 import { ScoreBoard } from '../value-objects/score-board';
 import type { OwnershipToken } from '@ownership/domain/value-objects/ownership-token';
-import type { SimulationState } from '../errors/invalid-state.error';
+import { InvalidStateError, type SimulationState } from '../errors/invalid-state.error';
 import type { DomainEvent } from '../events/domain-event';
 import { SimulationStarted } from '../events/simulation-started';
+import { GoalScored } from '../events/goal-scored';
 
 export interface SimulationSnapshot {
   readonly id: string;
@@ -64,6 +66,17 @@ export class Simulation {
     const events = this.pendingEvents;
     this.pendingEvents = [];
     return events;
+  }
+
+  applyGoal(teamId: TeamId, now: Date): void {
+    if (this.state !== 'RUNNING') {
+      throw new InvalidStateError(this.state, 'apply goal to');
+    }
+    this.score = this.score.increment(teamId);
+    this.totalGoals++;
+    this.pendingEvents.push(
+      new GoalScored(this.id, teamId, this.score.snapshot(), this.totalGoals, now),
+    );
   }
 
   toSnapshot(): SimulationSnapshot {
