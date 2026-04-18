@@ -1,5 +1,5 @@
 import { APP_FILTER } from '@nestjs/core';
-import { Module, type OnModuleInit, type OnModuleDestroy } from '@nestjs/common';
+import { Inject, Module, type OnModuleInit, type OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { AppConfig } from '@shared/config/config.schema';
 import { PORT_TOKENS } from '@simulation/domain/ports/tokens';
@@ -50,6 +50,17 @@ interface GatewayWithServer {
   server: { to(room: string): { emit(event: string, payload: unknown): void } };
 }
 
+async function shutdownIfPossible(bus: unknown): Promise<void> {
+  if (
+    bus &&
+    typeof bus === 'object' &&
+    'shutdown' in bus &&
+    typeof (bus as { shutdown?: unknown }).shutdown === 'function'
+  ) {
+    await (bus as { shutdown: () => Promise<void> }).shutdown();
+  }
+}
+
 @Module({
   imports: [OwnershipModule],
   controllers: [SimulationController],
@@ -61,9 +72,48 @@ interface GatewayWithServer {
       useFactory: (random: RandomProvider) => new UuidOwnershipTokenGenerator(random),
       inject: [PORT_TOKENS.RANDOM_PROVIDER],
     },
-    { provide: PORT_TOKENS.SIMULATION_REPOSITORY, useClass: InMemorySimulationRepository },
-    { provide: PORT_TOKENS.COMMAND_BUS, useClass: InMemoryCommandBus },
-    { provide: PORT_TOKENS.EVENT_BUS, useClass: InMemoryEventBus },
+    {
+      provide: PORT_TOKENS.SIMULATION_REPOSITORY,
+      useFactory: async (config: ConfigService<AppConfig, true>) => {
+        const mode = config.get('PERSISTENCE_MODE', { infer: true });
+        if (mode === 'redis') {
+          const { createRedisClient } = await import('@shared/infrastructure/redis.client');
+          const { RedisSimulationRepository } =
+            await import('@simulation/infrastructure/persistence/redis-simulation.repository');
+          const { PRESET_MATCHES } =
+            await import('@simulation/domain/value-objects/matches-preset');
+          const client = createRedisClient(config.get('REDIS_URL', { infer: true }));
+          await client.connect();
+          return new RedisSimulationRepository(client, PRESET_MATCHES);
+        }
+        return new InMemorySimulationRepository();
+      },
+      inject: [ConfigService],
+    },
+    {
+      provide: PORT_TOKENS.COMMAND_BUS,
+      useFactory: async (config: ConfigService<AppConfig, true>) => {
+        const mode = config.get('TRANSPORT_MODE', { infer: true });
+        if (mode === 'bullmq') {
+          const { BullMQCommandBus } = await import('@shared/messaging/bullmq-command-bus');
+          return new BullMQCommandBus(config.get('REDIS_URL', { infer: true }));
+        }
+        return new InMemoryCommandBus();
+      },
+      inject: [ConfigService],
+    },
+    {
+      provide: PORT_TOKENS.EVENT_BUS,
+      useFactory: async (config: ConfigService<AppConfig, true>) => {
+        const mode = config.get('TRANSPORT_MODE', { infer: true });
+        if (mode === 'bullmq') {
+          const { BullMQEventBus } = await import('@shared/messaging/bullmq-event-bus');
+          return new BullMQEventBus(config.get('REDIS_URL', { infer: true }));
+        }
+        return new InMemoryEventBus();
+      },
+      inject: [ConfigService],
+    },
     {
       provide: PORT_TOKENS.EVENT_PUBLISHER,
       useFactory: (bus: EventBus) => new InMemoryEventPublisher(bus),
@@ -167,6 +217,8 @@ export class SimulationModule implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly worker: SimulationWorkerHandler,
     private readonly forwarder: WsEventForwarder,
+    @Inject(PORT_TOKENS.COMMAND_BUS) private readonly commandBus: CommandBus,
+    @Inject(PORT_TOKENS.EVENT_BUS) private readonly eventBus: EventBus,
   ) {}
 
   onModuleInit(): void {
@@ -177,5 +229,7 @@ export class SimulationModule implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy(): Promise<void> {
     await this.worker.shutdown();
     await this.forwarder.stop();
+    await shutdownIfPossible(this.commandBus);
+    await shutdownIfPossible(this.eventBus);
   }
 }
