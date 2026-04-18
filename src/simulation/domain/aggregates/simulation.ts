@@ -1,9 +1,9 @@
-import type { SimulationId } from '../value-objects/simulation-id';
-import type { SimulationName } from '../value-objects/simulation-name';
+import { SimulationId } from '../value-objects/simulation-id';
+import { SimulationName } from '../value-objects/simulation-name';
 import type { Match } from '../value-objects/match';
 import type { TeamId } from '../value-objects/team-id';
 import { ScoreBoard } from '../value-objects/score-board';
-import type { OwnershipToken } from '@ownership/domain/value-objects/ownership-token';
+import { OwnershipToken } from '@ownership/domain/value-objects/ownership-token';
 import { InvalidStateError, type SimulationState } from '../errors/invalid-state.error';
 import type { DomainEvent } from '../events/domain-event';
 import { SimulationStarted } from '../events/simulation-started';
@@ -62,6 +62,20 @@ export class Simulation {
     );
     sim.pendingEvents.push(new SimulationStarted(input.id, input.now));
     return sim;
+  }
+
+  static fromSnapshot(snapshot: SimulationSnapshot, matches: readonly Match[]): Simulation {
+    return new Simulation(
+      SimulationId.create(snapshot.id),
+      OwnershipToken.create(snapshot.ownerToken),
+      SimulationName.create(snapshot.name),
+      snapshot.profileId,
+      snapshot.state,
+      ScoreBoard.fromSnapshot(snapshot.score, matches),
+      new Date(snapshot.startedAt),
+      snapshot.finishedAt ? new Date(snapshot.finishedAt) : null,
+      snapshot.totalGoals,
+    );
   }
 
   pullEvents(): readonly DomainEvent[] {

@@ -99,3 +99,23 @@ describe('ScoreBoard — additional scenarios', () => {
     expect(snap[1]).toEqual({ matchId: 'm2', home: 0, away: 1 });
   });
 });
+
+describe('ScoreBoard.fromSnapshot', () => {
+  const germany2 = Team.create(TeamId.create('germany'), 'Germany');
+  const poland2 = Team.create(TeamId.create('poland'), 'Poland');
+  const m1fs = Match.create(MatchId.create('m1'), germany2, poland2);
+
+  it('reconstructs ScoreBoard from snapshot + matches list', () => {
+    const original = ScoreBoard.fromMatches([m1fs]).increment(TeamId.create('germany'));
+    const snap = original.snapshot();
+    const restored = ScoreBoard.fromSnapshot(snap, [m1fs]);
+    expect(restored.snapshot()).toEqual(snap);
+    expect(restored.totalGoals()).toBe(1);
+  });
+
+  it('throws when snapshot has unknown matchId', () => {
+    expect(() =>
+      ScoreBoard.fromSnapshot([{ matchId: 'unknown', home: 1, away: 0 }], [m1fs]),
+    ).toThrow();
+  });
+});
