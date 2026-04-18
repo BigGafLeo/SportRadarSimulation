@@ -1,8 +1,17 @@
+import type { OwnershipToken } from '../value-objects/ownership-token';
+
+export interface OwnershipRecord {
+  readonly token: OwnershipToken;
+  readonly createdAt: Date;
+  readonly lastIgnitionAt: Date | null;
+}
+
 /**
  * Ownership token persistence port.
- * Phase 1 will define: save, findByToken, updateLastIgnitionAt.
+ * Default impl: InMemoryOwnershipRepository — Phase 1b.
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface OwnershipRepository {
-  // Phase 1 signature
+  save(record: OwnershipRecord): Promise<void>;
+  findByToken(token: OwnershipToken): Promise<OwnershipRecord | null>;
+  updateLastIgnitionAt(token: OwnershipToken, now: Date): Promise<void>;
 }
