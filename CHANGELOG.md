@@ -7,6 +7,28 @@ Projekt używa [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added (Phase 1a — domain layer, 2026-04-18)
+- Value Objects with Zod validation: `TeamId`, `MatchId`, `Team`, `Match`, `SimulationId`, `SimulationName` (Unicode letters/digits/spaces regex + no-trim rule), `ScoreBoard` (immutable operations), `OwnershipToken`
+- `PRESET_MATCHES` constant: Germany vs Poland, Brazil vs Mexico, Argentina vs Uruguay (PDF requirement)
+- `PRESET_TEAMS` derived list of 6 teams for random selection in Phase 1b
+- Domain events: `DomainEvent` base interface + `SimulationStarted`, `GoalScored`, `SimulationFinished` (reason: manual|auto), `SimulationRestarted`
+- Domain errors: `DomainError` base + `InvalidValueError` + `InvalidStateError` with `SimulationState` type
+- `Simulation` aggregate root with state machine RUNNING ↔ FINISHED, private constructor + `create()` factory, `applyGoal`/`finish`/`restart` invariants, `pendingEvents` buffer via `pullEvents()`, `toSnapshot()` read model
+- All 12 port interfaces filled with method signatures:
+  - Simulation ports: `Clock` (now+sleep with AbortSignal), `RandomProvider` (int+uuid), `SimulationRepository` (save/findById/findAll/findByOwner/delete), `EventPublisher` (publish), `SimulationEngine` (streaming `run(sim, emit, signal)` per design spec §6.3), `MatchDynamics` (nextStep → TimedEvent), `RetentionPolicy` (shouldRemove), `ThrottlePolicy` (canIgnite)
+  - Ownership ports: `OwnershipRepository` (save/findByToken/updateLastIgnitionAt) + `OwnershipRecord` type, `OwnershipTokenGenerator` (generate)
+  - Messaging ports: `CommandBus` (dispatch/subscribe) + `Command`/`Subscription` types, `EventBus` (publish/subscribe) + `EventMeta`/`EventFilter` types
+- 68 unit tests total, <3s runtime
+- `.gitattributes` with LF enforcement to resolve CRLF drift on Windows
+
+### Changed
+- `.eslintrc.cjs`: removed `no-empty-interface` override for ports (interfaces are no longer empty)
+
+### Phase 1a status
+- Branch: `phase-1-mvp-in-process`
+- No tag yet — `v1.0-mvp-in-process` is created after Phase 1c completes (infrastructure + application + gateway + integration/E2E tests)
+- Next: Phase 1b — Infrastructure adapters (Engine, Dynamics, Clock, Random, Repos, Policies, Buses)
+
 ## [0.1.0] — 2026-04-18
 
 ### Added
