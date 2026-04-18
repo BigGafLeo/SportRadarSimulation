@@ -1,0 +1,85 @@
+import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
+import { InvalidStateError } from '@simulation/domain/errors/invalid-state.error';
+import { InvalidValueError } from '@simulation/domain/errors/invalid-value.error';
+import {
+  SimulationNotFoundError,
+  OwnershipMismatchError,
+  ThrottledError,
+  UnknownTokenError,
+} from '@simulation/application/orchestrator/orchestrator.errors';
+
+interface ErrorBody {
+  readonly error: {
+    readonly code: string;
+    readonly message: string;
+    readonly [key: string]: unknown;
+  };
+}
+
+@Catch()
+export class DomainExceptionFilter implements ExceptionFilter {
+  catch(exception: unknown, host: ArgumentsHost): void {
+    const response = host.switchToHttp().getResponse<{
+      status: (code: number) => { json: (body: ErrorBody) => void };
+    }>();
+
+    if (exception instanceof InvalidValueError) {
+      response.status(400).json({
+        error: {
+          code: 'INVALID_VALUE',
+          message: exception.message,
+          field: exception.field,
+          reason: exception.reason,
+        },
+      });
+      return;
+    }
+    if (exception instanceof InvalidStateError) {
+      response.status(409).json({
+        error: {
+          code: 'INVALID_STATE',
+          message: exception.message,
+          currentState: exception.currentState,
+          attemptedAction: exception.attemptedAction,
+        },
+      });
+      return;
+    }
+    if (exception instanceof SimulationNotFoundError) {
+      response.status(404).json({
+        error: {
+          code: 'NOT_FOUND',
+          message: exception.message,
+          simulationId: exception.simulationId,
+        },
+      });
+      return;
+    }
+    if (exception instanceof OwnershipMismatchError) {
+      response.status(403).json({
+        error: { code: 'FORBIDDEN', message: exception.message },
+      });
+      return;
+    }
+    if (exception instanceof ThrottledError) {
+      response.status(429).json({
+        error: {
+          code: 'THROTTLED',
+          message: exception.message,
+          cooldownMs: exception.cooldownMs,
+        },
+      });
+      return;
+    }
+    if (exception instanceof UnknownTokenError) {
+      response.status(401).json({
+        error: { code: 'UNAUTHORIZED', message: exception.message },
+      });
+      return;
+    }
+    const message = exception instanceof Error ? exception.message : 'unknown error';
+    response.status(500).json({
+      error: { code: 'INTERNAL', message },
+    });
+  }
+}
