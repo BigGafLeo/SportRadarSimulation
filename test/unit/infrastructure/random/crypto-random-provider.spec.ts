@@ -31,4 +31,21 @@ describe('CryptoRandomProvider', () => {
     const b = rng.uuid();
     expect(a).not.toBe(b);
   });
+
+  describe('float()', () => {
+    it('returns value in [0, 1)', () => {
+      const r = new CryptoRandomProvider();
+      for (let i = 0; i < 1000; i++) {
+        const v = r.float();
+        expect(v).toBeGreaterThanOrEqual(0);
+        expect(v).toBeLessThan(1);
+      }
+    });
+    it('produces variety (not constant)', () => {
+      const r = new CryptoRandomProvider();
+      const samples = new Set();
+      for (let i = 0; i < 100; i++) samples.add(r.float());
+      expect(samples.size).toBeGreaterThan(50);
+    });
+  });
 });

@@ -42,4 +42,22 @@ describe('SeededRandomProvider', () => {
       expect(rng.int(5, 5)).toBe(5);
     }
   });
+
+  describe('float()', () => {
+    it('returns value in [0, 1)', () => {
+      const r = new SeededRandomProvider(42);
+      for (let i = 0; i < 100; i++) {
+        const v = r.float();
+        expect(v).toBeGreaterThanOrEqual(0);
+        expect(v).toBeLessThan(1);
+      }
+    });
+    it('is deterministic for same seed', () => {
+      const a = new SeededRandomProvider(123);
+      const b = new SeededRandomProvider(123);
+      for (let i = 0; i < 50; i++) {
+        expect(a.float()).toBe(b.float());
+      }
+    });
+  });
 });

@@ -4,5 +4,6 @@
  */
 export interface RandomProvider {
   int(min: number, max: number): number;
+  float(): number;
   uuid(): string;
 }
