@@ -1,8 +1,17 @@
+export interface Command {
+  readonly type: string;
+}
+
+export interface Subscription {
+  unsubscribe(): Promise<void>;
+}
+
 /**
- * Command dispatch port (in-memory in Phase 1, BullMQ in Phase 2+).
- * Phase 1 will define: dispatch, subscribe.
+ * Command dispatch port.
+ * Default impl (Phase 1): InMemoryCommandBus (Node EventEmitter).
+ * Later (Phase 2): BullMQCommandBus (Redis-backed, cross-process).
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface CommandBus {
-  // Phase 1 signature
+  dispatch<C extends Command>(topic: string, command: C): Promise<void>;
+  subscribe<C extends Command>(topic: string, handler: (command: C) => Promise<void>): Subscription;
 }
