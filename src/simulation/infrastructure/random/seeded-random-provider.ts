@@ -17,6 +17,11 @@ export class SeededRandomProvider implements RandomProvider {
     return min + (this.state % range);
   }
 
+  float(): number {
+    this.state = (Math.imul(this.state, 1664525) + 1013904223) >>> 0;
+    return this.state / 0x1_0000_0000;
+  }
+
   uuid(): string {
     const parts = [
       this.nextHex(8),
