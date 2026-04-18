@@ -32,9 +32,9 @@ ENV NODE_ENV=production
 # Create non-root user
 RUN addgroup -S app && adduser -S app -G app
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=builder /app/dist ./dist
-COPY package.json ./
+COPY --chown=app:app --from=deps /app/node_modules ./node_modules
+COPY --chown=app:app --from=builder /app/dist ./dist
+COPY --chown=app:app package.json ./
 
 USER app
 
