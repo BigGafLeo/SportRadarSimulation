@@ -21,6 +21,21 @@ export class ScoreBoard {
     return new ScoreBoard(matches.map((match) => ({ match, home: 0, away: 0 })));
   }
 
+  static fromSnapshot(
+    snapshot: readonly MatchScoreSnapshot[],
+    matches: readonly Match[],
+  ): ScoreBoard {
+    const byMatchId = new Map(matches.map((m) => [m.id.value, m]));
+    const scores = snapshot.map((entry) => {
+      const match = byMatchId.get(entry.matchId);
+      if (!match) {
+        throw new InvalidValueError('ScoreBoard', 'match id not in matches list', entry.matchId);
+      }
+      return { match, home: entry.home, away: entry.away };
+    });
+    return new ScoreBoard(scores);
+  }
+
   increment(teamId: TeamId): ScoreBoard {
     const updated = this.scores.map((entry) => {
       if (entry.match.home.id.equals(teamId)) {

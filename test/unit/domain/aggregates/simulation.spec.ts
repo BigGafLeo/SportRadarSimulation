@@ -226,3 +226,60 @@ describe('Simulation.restart', () => {
     expect(() => sim.restart(new Date())).toThrow(InvalidStateError);
   });
 });
+
+describe('Simulation.fromSnapshot', () => {
+  const idfs = SimulationId.create('550e8400-e29b-41d4-a716-446655440000');
+  const tokenfs = OwnershipToken.create('550e8400-e29b-41d4-a716-446655440001');
+  const namefs = SimulationName.create('Katar 2023');
+  const startfs = new Date('2026-04-18T12:00:00Z');
+
+  it('round-trips via toSnapshot + fromSnapshot (RUNNING, no goals)', () => {
+    const orig = Simulation.create({
+      id: idfs,
+      ownerToken: tokenfs,
+      name: namefs,
+      matches: PRESET_MATCHES,
+      profileId: 'default',
+      now: startfs,
+    });
+    orig.pullEvents();
+    const snap = orig.toSnapshot();
+    const restored = Simulation.fromSnapshot(snap, PRESET_MATCHES);
+    expect(restored.toSnapshot()).toEqual(snap);
+  });
+
+  it('round-trips after goals + finish', () => {
+    const orig = Simulation.create({
+      id: idfs,
+      ownerToken: tokenfs,
+      name: namefs,
+      matches: PRESET_MATCHES,
+      profileId: 'default',
+      now: startfs,
+    });
+    orig.applyGoal(TeamId.create('germany'), new Date(startfs.getTime() + 1000));
+    orig.applyGoal(TeamId.create('poland'), new Date(startfs.getTime() + 2000));
+    orig.finish('auto', new Date(startfs.getTime() + 9000));
+    orig.pullEvents();
+    const snap = orig.toSnapshot();
+    const restored = Simulation.fromSnapshot(snap, PRESET_MATCHES);
+    expect(restored.toSnapshot()).toEqual(snap);
+  });
+
+  it('restored aggregate emits events correctly on further mutation', () => {
+    const orig = Simulation.create({
+      id: idfs,
+      ownerToken: tokenfs,
+      name: namefs,
+      matches: PRESET_MATCHES,
+      profileId: 'default',
+      now: startfs,
+    });
+    orig.pullEvents();
+    const restored = Simulation.fromSnapshot(orig.toSnapshot(), PRESET_MATCHES);
+    restored.applyGoal(TeamId.create('germany'), new Date(startfs.getTime() + 1000));
+    const events = restored.pullEvents();
+    expect(events).toHaveLength(1);
+    expect(events[0].type).toBe('GoalScored');
+  });
+});
