@@ -6,6 +6,7 @@ import { PRESET_MATCHES } from '@simulation/domain/value-objects/matches-preset'
 import { TeamId } from '@simulation/domain/value-objects/team-id';
 import { InvalidStateError } from '@simulation/domain/errors/invalid-state.error';
 import type { GoalScored } from '@simulation/domain/events/goal-scored';
+import type { SimulationFinished } from '@simulation/domain/events/simulation-finished';
 
 describe('Simulation.create', () => {
   const id = SimulationId.create('550e8400-e29b-41d4-a716-446655440000');
@@ -108,10 +109,65 @@ describe('Simulation.applyGoal', () => {
     expect(e.occurredAt).toEqual(at);
   });
 
-  it.skip('rejects applyGoal when state is FINISHED (enabled in Task 11 when finish() exists)', () => {
+  it('rejects applyGoal when state is FINISHED', () => {
     const sim = fresh();
-    // @ts-expect-error finish() added in Task 11
     sim.finish('manual', new Date(start.getTime() + 5000));
     expect(() => sim.applyGoal(TeamId.create('germany'), new Date())).toThrow(InvalidStateError);
+  });
+});
+
+describe('Simulation.finish', () => {
+  const id = SimulationId.create('550e8400-e29b-41d4-a716-446655440000');
+  const token = OwnershipToken.create('550e8400-e29b-41d4-a716-446655440001');
+  const name = SimulationName.create('Katar 2023');
+  const start = new Date('2026-04-18T12:00:00Z');
+
+  function fresh(): Simulation {
+    const sim = Simulation.create({
+      id,
+      ownerToken: token,
+      name,
+      matches: PRESET_MATCHES,
+      profileId: 'default',
+      now: start,
+    });
+    sim.pullEvents();
+    return sim;
+  }
+
+  it('transitions RUNNING -> FINISHED with manual reason', () => {
+    const sim = fresh();
+    const at = new Date(start.getTime() + 5000);
+    sim.finish('manual', at);
+    const snap = sim.toSnapshot();
+    expect(snap.state).toBe('FINISHED');
+    expect(snap.finishedAt).toEqual(at);
+  });
+
+  it('emits SimulationFinished with reason and final score', () => {
+    const sim = fresh();
+    sim.applyGoal(TeamId.create('germany'), new Date(start.getTime() + 1000));
+    sim.pullEvents();
+    const at = new Date(start.getTime() + 5000);
+    sim.finish('manual', at);
+    const events = sim.pullEvents();
+    expect(events).toHaveLength(1);
+    const e = events[0] as SimulationFinished;
+    if (e.type === 'SimulationFinished') {
+      expect(e.reason).toBe('manual');
+      expect(e.totalGoals).toBe(1);
+    }
+  });
+
+  it('rejects finish when already FINISHED', () => {
+    const sim = fresh();
+    sim.finish('manual', new Date(start.getTime() + 5000));
+    expect(() => sim.finish('auto', new Date(start.getTime() + 9000))).toThrow(InvalidStateError);
+  });
+
+  it('accepts reason=auto as well', () => {
+    const sim = fresh();
+    sim.finish('auto', new Date(start.getTime() + 9000));
+    expect(sim.toSnapshot().state).toBe('FINISHED');
   });
 });
