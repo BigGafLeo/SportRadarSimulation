@@ -23,6 +23,7 @@
     "paths": {
       "@simulation/*": ["src/simulation/*"],
       "@ownership/*": ["src/ownership/*"],
+      "@auth/*": ["src/auth/*"],
       "@shared/*": ["src/shared/*"]
     }
   },
