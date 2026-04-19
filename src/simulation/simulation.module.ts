@@ -5,7 +5,7 @@ import type { AppConfig } from '@shared/config/config.schema';
 import { PORT_TOKENS } from '@simulation/domain/ports/tokens';
 import { OwnershipModule } from '@ownership/ownership.module';
 import { CryptoRandomProvider } from '@simulation/infrastructure/random/crypto-random-provider';
-import { InMemorySimulationRepository } from '@simulation/infrastructure/persistence/in-memory-simulation.repository';
+import { createSimulationRepository } from '@simulation/infrastructure/persistence/simulation-repository.factory';
 import { UuidOwnershipTokenGenerator } from '@ownership/infrastructure/uuid-ownership-token.generator';
 import { TickingSimulationEngine } from '@simulation/infrastructure/engine/ticking-simulation-engine';
 import {
@@ -60,18 +60,7 @@ interface GatewayWithServer {
     },
     {
       provide: PORT_TOKENS.SIMULATION_REPOSITORY,
-      useFactory: async (config: ConfigService<AppConfig, true>) => {
-        const mode = config.get('PERSISTENCE_MODE', { infer: true });
-        if (mode === 'postgres') {
-          const { getPrismaClient } = await import('../shared/infrastructure/prisma.client');
-          const { PostgresSimulationRepository } =
-            await import('./infrastructure/persistence/postgres-simulation.repository');
-          const { PRESET_MATCHES } = await import('./domain/value-objects/matches-preset');
-          const prisma = getPrismaClient(config.get('DATABASE_URL', { infer: true }));
-          return new PostgresSimulationRepository(prisma, PRESET_MATCHES);
-        }
-        return new InMemorySimulationRepository();
-      },
+      useFactory: (config: ConfigService<AppConfig, true>) => createSimulationRepository(config),
       inject: [ConfigService],
     },
     {
