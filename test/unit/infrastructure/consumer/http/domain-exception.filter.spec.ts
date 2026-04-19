@@ -7,7 +7,6 @@ import {
   SimulationNotFoundError,
   OwnershipMismatchError,
   ThrottledError,
-  UnknownTokenError,
 } from '@simulation/application/orchestrator/orchestrator.errors';
 
 interface MockResponse {
@@ -73,12 +72,6 @@ describe('DomainExceptionFilter', () => {
     const { response, host } = mockHost();
     filter.catch(new ThrottledError(5000), host);
     expect(response._status).toBe(429);
-  });
-
-  it('maps UnknownTokenError → 401', () => {
-    const { response, host } = mockHost();
-    filter.catch(new UnknownTokenError('abc'), host);
-    expect(response._status).toBe(401);
   });
 
   it('unknown DomainError subclass rethrows for NestJS default handler', () => {

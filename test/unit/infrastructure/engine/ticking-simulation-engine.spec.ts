@@ -5,7 +5,6 @@ import { FakeClock } from '@simulation/infrastructure/time/fake-clock';
 import { Simulation } from '@simulation/domain/aggregates/simulation';
 import { SimulationId } from '@simulation/domain/value-objects/simulation-id';
 import { SimulationName } from '@simulation/domain/value-objects/simulation-name';
-import { OwnershipToken } from '@ownership/domain/value-objects/ownership-token';
 import { PRESET_MATCHES } from '@simulation/domain/value-objects/matches-preset';
 import type { DomainEvent } from '@simulation/domain/events/domain-event';
 import { GoalScored } from '@simulation/domain/events/goal-scored';
@@ -16,7 +15,7 @@ const DYNAMICS_CONFIG = { goalCount: 9, goalIntervalMs: 1000, firstGoalOffsetMs:
 function makeSim(): Simulation {
   const sim = Simulation.create({
     id: SimulationId.create('550e8400-e29b-41d4-a716-446655440000'),
-    ownerToken: OwnershipToken.create('550e8400-e29b-41d4-a716-446655440010'),
+    ownerId: 'user-uuid-engine-test',
     name: SimulationName.create('Katar 2023'),
     matches: PRESET_MATCHES,
     profileId: 'default',

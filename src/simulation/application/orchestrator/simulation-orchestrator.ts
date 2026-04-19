@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { Simulation } from '@simulation/domain/aggregates/simulation';
 import { InvalidStateError } from '@simulation/domain/errors/invalid-state.error';
 import { SimulationId } from '@simulation/domain/value-objects/simulation-id';
@@ -7,9 +8,6 @@ import type { SimulationRepository } from '@simulation/domain/ports/simulation-r
 import type { Clock } from '@simulation/domain/ports/clock.port';
 import type { ThrottlePolicy } from '@simulation/domain/ports/throttle-policy.port';
 import type { EventPublisher } from '@simulation/domain/ports/event-publisher.port';
-import type { OwnershipRepository } from '@ownership/domain/ports/ownership-repository.port';
-import type { OwnershipTokenGenerator } from '@ownership/domain/ports/ownership-token-generator.port';
-import type { OwnershipToken } from '@ownership/domain/value-objects/ownership-token';
 import type { CommandBus } from '@shared/messaging/command-bus.port';
 import { PRESET_MATCHES } from '@simulation/domain/value-objects/matches-preset';
 import { runSimulationCommand } from '../commands/run-simulation.command';
@@ -19,36 +17,32 @@ import {
   SimulationNotFoundError,
   OwnershipMismatchError,
   ThrottledError,
-  UnknownTokenError,
 } from './orchestrator.errors';
 
 export interface StartSimulationInput {
+  readonly userId: string;
   readonly name: string;
-  readonly ownershipToken?: OwnershipToken;
   readonly profileId?: string;
 }
 
 export interface StartSimulationResult {
   readonly simulationId: string;
-  readonly ownershipToken: string;
   readonly state: 'RUNNING';
   readonly initialSnapshot: SimulationSnapshot;
 }
 
 export interface FinishSimulationInput {
   readonly simulationId: SimulationId;
-  readonly ownershipToken: OwnershipToken;
+  readonly userId: string;
 }
 
 export interface RestartSimulationInput {
   readonly simulationId: SimulationId;
-  readonly ownershipToken: OwnershipToken;
+  readonly userId: string;
 }
 
 export interface SimulationOrchestratorDeps {
   readonly simulationRepository: SimulationRepository;
-  readonly ownershipRepository: OwnershipRepository;
-  readonly tokenGenerator: OwnershipTokenGenerator;
   readonly throttlePolicy: ThrottlePolicy;
   readonly commandBus: CommandBus;
   readonly eventPublisher: EventPublisher;
@@ -65,13 +59,12 @@ export class SimulationOrchestrator {
     const profileId = input.profileId ?? this.deps.defaultProfileId;
     const now = this.deps.clock.now();
 
-    const token = await this.resolveOrIssueToken(input.ownershipToken, now);
-    await this.ensureCanIgnite(token, now);
+    await this.ensureCanIgnite(input.userId, now);
 
-    const simulationId = SimulationId.create(this.deps.tokenGenerator.generate().value);
+    const simulationId = SimulationId.create(randomUUID());
     const sim = Simulation.create({
       id: simulationId,
-      ownerToken: token,
+      ownerId: input.userId,
       name,
       matches: PRESET_MATCHES,
       profileId,
@@ -79,7 +72,6 @@ export class SimulationOrchestrator {
     });
 
     await this.deps.simulationRepository.save(sim);
-    await this.deps.ownershipRepository.updateLastIgnitionAt(token, now);
     for (const evt of sim.pullEvents()) {
       await this.deps.eventPublisher.publish(evt);
     }
@@ -91,7 +83,6 @@ export class SimulationOrchestrator {
 
     return {
       simulationId: simulationId.value,
-      ownershipToken: token.value,
       state: 'RUNNING',
       initialSnapshot: sim.toSnapshot(),
     };
@@ -99,8 +90,7 @@ export class SimulationOrchestrator {
 
   async finishSimulation(input: FinishSimulationInput): Promise<void> {
     const sim = await this.findSimulationOrThrow(input.simulationId);
-    await this.requireKnownToken(input.ownershipToken);
-    this.assertOwnership(sim, input.ownershipToken);
+    this.assertOwnership(sim, input.userId);
     await this.deps.commandBus.dispatch(
       SIMULATION_TOPICS.ABORT,
       abortSimulationCommand(input.simulationId.value, this.deps.clock.now().getTime()),
@@ -109,18 +99,15 @@ export class SimulationOrchestrator {
 
   async restartSimulation(input: RestartSimulationInput): Promise<void> {
     const sim = await this.findSimulationOrThrow(input.simulationId);
-    await this.requireKnownToken(input.ownershipToken);
-    this.assertOwnership(sim, input.ownershipToken);
-    // State check before throttle: a RUNNING sim cannot be restarted regardless of cooldown.
+    this.assertOwnership(sim, input.userId);
     const snapshot = sim.toSnapshot();
     if (snapshot.state !== 'FINISHED') {
       throw new InvalidStateError(snapshot.state, 'restart');
     }
     const now = this.deps.clock.now();
-    await this.ensureCanIgnite(input.ownershipToken, now);
+    await this.ensureCanIgnite(input.userId, now);
     sim.restart(now);
     await this.deps.simulationRepository.save(sim);
-    await this.deps.ownershipRepository.updateLastIgnitionAt(input.ownershipToken, now);
     for (const evt of sim.pullEvents()) {
       await this.deps.eventPublisher.publish(evt);
     }
@@ -141,40 +128,10 @@ export class SimulationOrchestrator {
     return sim.toSnapshot();
   }
 
-  private async resolveOrIssueToken(
-    provided: OwnershipToken | undefined,
-    now: Date,
-  ): Promise<OwnershipToken> {
-    if (provided) {
-      const rec = await this.deps.ownershipRepository.findByToken(provided);
-      if (!rec) {
-        throw new UnknownTokenError(provided.value);
-      }
-      return provided;
-    }
-    const token = this.deps.tokenGenerator.generate();
-    await this.deps.ownershipRepository.save({
-      token,
-      createdAt: now,
-      lastIgnitionAt: null,
-    });
-    return token;
-  }
-
-  private async ensureCanIgnite(token: OwnershipToken, now: Date): Promise<void> {
-    const rec = await this.deps.ownershipRepository.findByToken(token);
-    if (!rec) {
-      throw new UnknownTokenError(token.value);
-    }
-    if (!this.deps.throttlePolicy.canIgnite(token, rec.lastIgnitionAt, now)) {
+  private async ensureCanIgnite(userId: string, now: Date): Promise<void> {
+    const lastStartedAt = await this.deps.simulationRepository.findLastStartedAtByOwner(userId);
+    if (!this.deps.throttlePolicy.canIgnite(userId, lastStartedAt, now)) {
       throw new ThrottledError(this.deps.cooldownMs);
-    }
-  }
-
-  private async requireKnownToken(token: OwnershipToken): Promise<void> {
-    const rec = await this.deps.ownershipRepository.findByToken(token);
-    if (!rec) {
-      throw new UnknownTokenError(token.value);
     }
   }
 
@@ -186,8 +143,8 @@ export class SimulationOrchestrator {
     return sim;
   }
 
-  private assertOwnership(sim: Simulation, token: OwnershipToken): void {
-    if (!sim.ownerToken.equals(token)) {
+  private assertOwnership(sim: Simulation, userId: string): void {
+    if (sim.ownerId !== userId) {
       throw new OwnershipMismatchError(sim.id.value);
     }
   }

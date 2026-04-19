@@ -6,7 +6,6 @@ import {
   SimulationNotFoundError,
   OwnershipMismatchError,
   ThrottledError,
-  UnknownTokenError,
 } from '@simulation/application/orchestrator/orchestrator.errors';
 
 interface ErrorBody {
@@ -69,12 +68,6 @@ export class DomainExceptionFilter implements ExceptionFilter<DomainError> {
           message: exception.message,
           cooldownMs: exception.cooldownMs,
         },
-      });
-      return;
-    }
-    if (exception instanceof UnknownTokenError) {
-      response.status(401).json({
-        error: { code: 'UNAUTHORIZED', message: exception.message },
       });
       return;
     }

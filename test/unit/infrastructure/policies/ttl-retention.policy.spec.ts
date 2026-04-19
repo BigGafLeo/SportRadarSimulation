@@ -2,13 +2,12 @@ import { TtlRetentionPolicy } from '@simulation/infrastructure/policies/ttl-rete
 import { Simulation } from '@simulation/domain/aggregates/simulation';
 import { SimulationId } from '@simulation/domain/value-objects/simulation-id';
 import { SimulationName } from '@simulation/domain/value-objects/simulation-name';
-import { OwnershipToken } from '@ownership/domain/value-objects/ownership-token';
 import { PRESET_MATCHES } from '@simulation/domain/value-objects/matches-preset';
 
 function makeSim(startedAt: Date): Simulation {
   return Simulation.create({
     id: SimulationId.create('550e8400-e29b-41d4-a716-446655440000'),
-    ownerToken: OwnershipToken.create('550e8400-e29b-41d4-a716-446655440010'),
+    ownerId: 'user-uuid-retention-test',
     name: SimulationName.create('Katar 2023'),
     matches: PRESET_MATCHES,
     profileId: 'default',

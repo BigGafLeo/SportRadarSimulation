@@ -10,7 +10,6 @@ import { InMemoryEventPublisher } from '@shared/messaging/in-memory-event-publis
 import { Simulation } from '@simulation/domain/aggregates/simulation';
 import { SimulationId } from '@simulation/domain/value-objects/simulation-id';
 import { SimulationName } from '@simulation/domain/value-objects/simulation-name';
-import { OwnershipToken } from '@ownership/domain/value-objects/ownership-token';
 import { PRESET_MATCHES } from '@simulation/domain/value-objects/matches-preset';
 import { runSimulationCommand } from '@simulation/application/commands/run-simulation.command';
 import { abortSimulationCommand } from '@simulation/application/commands/abort-simulation.command';
@@ -30,12 +29,11 @@ describe('SimulationWorkerHandler', () => {
   async function buildRunningSim(
     simRepo: InMemorySimulationRepository,
     clock: FakeClock,
-  ): Promise<{ id: SimulationId; token: OwnershipToken }> {
+  ): Promise<{ id: SimulationId }> {
     const id = SimulationId.create('550e8400-e29b-41d4-a716-446655440000');
-    const token = OwnershipToken.create('550e8400-e29b-41d4-a716-446655440010');
     const sim = Simulation.create({
       id,
-      ownerToken: token,
+      ownerId: 'user-uuid-worker-test',
       name: SimulationName.create('Katar 2023'),
       matches: PRESET_MATCHES,
       profileId: 'default',
@@ -43,7 +41,7 @@ describe('SimulationWorkerHandler', () => {
     });
     sim.pullEvents();
     await simRepo.save(sim);
-    return { id, token };
+    return { id };
   }
 
   it('runs engine to completion on RunSimulationCommand, emits 9 goals + auto-finish', async () => {
