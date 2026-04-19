@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client';
+import type { PrismaClient, User as PrismaUser } from '@prisma/client';
 import type { UserRepository } from '@auth/domain/ports/user-repository.port';
 import { User } from '@auth/domain/aggregates/user';
 import type { Email } from '@auth/domain/value-objects/email';
@@ -20,23 +20,18 @@ export class PostgresUserRepository implements UserRepository {
   }
 
   async findByEmail(email: Email): Promise<User | null> {
-    const row = await this.prisma.user.findUnique({
-      where: { email: email.value },
-    });
+    const row = await this.prisma.user.findUnique({ where: { email: email.value } });
     if (!row) return null;
-    return User.fromSnapshot({
-      id: row.id,
-      email: row.email,
-      passwordHash: row.passwordHash,
-      createdAt: row.createdAt,
-    });
+    return this.toAggregate(row);
   }
 
   async findById(id: UserId): Promise<User | null> {
-    const row = await this.prisma.user.findUnique({
-      where: { id: id.value },
-    });
+    const row = await this.prisma.user.findUnique({ where: { id: id.value } });
     if (!row) return null;
+    return this.toAggregate(row);
+  }
+
+  private toAggregate(row: PrismaUser): User {
     return User.fromSnapshot({
       id: row.id,
       email: row.email,
