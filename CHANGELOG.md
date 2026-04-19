@@ -7,6 +7,42 @@ Projekt używa [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [4.1.0] — 2026-04-19 — Phase 4a: Postgres simulation persistence
+
+### Added
+- `PostgresSimulationRepository` — Prisma-backed implementation of `SimulationRepository` port (full 5-method contract: save, findById, findAll, findByOwner, delete)
+- Prisma schema (`prisma/schema.prisma`) with `Simulation` model: hybrid columns + JSONB `score_snapshot`, indexes on `state` and `owner_token`
+- Initial migration `phase4a_simulation_table` (`prisma/migrations/`)
+- `getPrismaClient(databaseUrl)` lazy singleton in `src/shared/infrastructure/prisma.client.ts`
+- `DATABASE_URL` env var (config schema, default `postgresql://sportradar:sportradar@localhost:5432/sportradar`)
+- `postgres:16-alpine` service in docker-compose with healthcheck + named volume (`postgres-data`); host port 5434 (5432/5433 often taken on dev machines)
+- Auto-migration on container startup via `prisma migrate deploy` (Dockerfile CMD)
+- `apk add openssl` in all Docker stages — required by Prisma query/migrate engines on Alpine
+- Integration test: `PostgresSimulationRepository` CRUD via `@testcontainers/postgresql` (7 tests)
+- Dependencies: `@prisma/client@^5.20`, `prisma@^5.20` (devDep), `@testcontainers/postgresql@^10.13` (devDep)
+- `postinstall` script runs `prisma generate`; `db:migrate:dev`, `db:migrate:deploy`, `db:studio` helper scripts
+
+### Changed
+- **Breaking**: `PERSISTENCE_MODE` enum reduced from `inmemory|redis` to `inmemory|postgres` (Redis-as-persistence dropped per ADR-008)
+- `SimulationModule` and `WorkerModule` factories now branch `inmemory|postgres`; both call `getPrismaClient()` for postgres path
+- Module teardown (`onModuleDestroy`) adds `disconnectPrismaClient()` after existing shutdowns
+- Dockerfile copies `prisma/` into builder + deps + runner; `prisma generate` runs via `postinstall`; `prisma migrate deploy` prepended to CMD
+- All app services in docker-compose get `DATABASE_URL` + `PERSISTENCE_MODE=postgres` + `depends_on.postgres.condition: service_healthy`
+
+### Removed
+- `src/simulation/infrastructure/persistence/redis-simulation.repository.ts` (Phase 2 stepping stone, no production use case after Postgres lands; impl preserved in git history at tag `v3.0-profile-driven`)
+- `test/integration/distributed/redis-simulation.repository.spec.ts`
+
+### ADRs
+- ADR-006: PostgresSimulationRepository — full swap (no Redis hot/cold hybrid)
+- ADR-007: Schema hybrid (queryable columns + JSONB `score_snapshot`)
+- ADR-008: Drop `RedisSimulationRepository`
+
+### Notes
+- **Ownership tokens still in-memory**: `OwnershipRepository` is NOT migrated to Postgres in 4a. Tokens reset when orchestrator restarts (finish/restart actions need fresh token from current session). Phase 4b replaces `OwnershipRepository` entirely with `UserRepository` backed by Postgres + JWT auth.
+- **Hybrid repo NOT implemented**: Redis hot + Postgres cold was brainstormed but rejected — premature at our scale (10-180 writes/s vs PG's 5000+ TPS). Port stays open for Phase 6 if metrics demand it.
+- **Durability verified**: `docker compose down && docker compose up -d` preserves all simulations (named volume `postgres-data`).
+
 ## [3.0.0] — 2026-04-19 — Phase 3: Profile-driven specialization
 
 ### Added
