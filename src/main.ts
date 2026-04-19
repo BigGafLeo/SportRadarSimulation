@@ -6,6 +6,8 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { AppModule } from './app.module';
 import type { AppConfig } from './shared/config/config.schema';
+import { PROFILE_IDS } from './simulation/infrastructure/profiles/profile-registry';
+import { SIMULATION_TOPICS } from './simulation/application/commands/simulation-topics';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
@@ -33,8 +35,6 @@ async function mountBullBoard(app: INestApplication): Promise<void> {
   const { BullMQAdapter } = await import('@bull-board/api/bullMQAdapter');
   const { ExpressAdapter } = await import('@bull-board/express');
   const { Queue } = await import('bullmq');
-  const { PROFILE_IDS } = await import('@simulation/infrastructure/profiles/profile-registry');
-  const { SIMULATION_TOPICS } = await import('@simulation/application/commands/simulation-topics');
 
   const config = app.get<ConfigService<AppConfig, true>>(ConfigService);
   const redisUrl = config.get('REDIS_URL', { infer: true });
