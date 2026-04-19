@@ -2,11 +2,10 @@ import { Module, type OnModuleInit, type OnModuleDestroy, Inject } from '@nestjs
 import { ConfigService } from '@nestjs/config';
 import type { AppConfig } from '@shared/config/config.schema';
 import { PORT_TOKENS } from '@simulation/domain/ports/tokens';
-import { SystemClock } from '@simulation/infrastructure/time/system-clock';
 import { CryptoRandomProvider } from '@simulation/infrastructure/random/crypto-random-provider';
-import { UniformRandomGoalDynamics } from '@simulation/infrastructure/dynamics/uniform-random-goal-dynamics';
 import { TickingSimulationEngine } from '@simulation/infrastructure/engine/ticking-simulation-engine';
 import { SimulationWorkerHandler } from '@simulation/application/worker/simulation-worker.handler';
+import { getProfile } from '@simulation/infrastructure/profiles/profile-registry';
 import type { RandomProvider } from '@simulation/domain/ports/random-provider.port';
 import type { Clock } from '@simulation/domain/ports/clock.port';
 import type { MatchDynamics } from '@simulation/domain/ports/match-dynamics.port';
@@ -15,8 +14,6 @@ import type { EventPublisher } from '@simulation/domain/ports/event-publisher.po
 import type { SimulationEngine } from '@simulation/domain/ports/simulation-engine.port';
 import type { CommandBus } from '@shared/messaging/command-bus.port';
 import type { EventBus } from '@shared/messaging/event-bus.port';
-
-const DEFAULT_PROFILE_ID = 'default';
 
 async function shutdownIfPossible(bus: unknown): Promise<void> {
   if (
@@ -31,8 +28,23 @@ async function shutdownIfPossible(bus: unknown): Promise<void> {
 
 @Module({
   providers: [
-    { provide: PORT_TOKENS.CLOCK, useClass: SystemClock },
     { provide: PORT_TOKENS.RANDOM_PROVIDER, useClass: CryptoRandomProvider },
+    {
+      provide: PORT_TOKENS.CLOCK,
+      useFactory: (config: ConfigService<AppConfig, true>) => {
+        const profileId = config.get('SIMULATION_PROFILE', { infer: true });
+        return getProfile(profileId).clockFactory();
+      },
+      inject: [ConfigService],
+    },
+    {
+      provide: PORT_TOKENS.MATCH_DYNAMICS,
+      useFactory: (random: RandomProvider, config: ConfigService<AppConfig, true>) => {
+        const profileId = config.get('SIMULATION_PROFILE', { infer: true });
+        return getProfile(profileId).dynamicsFactory({ random });
+      },
+      inject: [PORT_TOKENS.RANDOM_PROVIDER, ConfigService],
+    },
     {
       provide: PORT_TOKENS.SIMULATION_REPOSITORY,
       useFactory: async (config: ConfigService<AppConfig, true>) => {
@@ -73,16 +85,6 @@ async function shutdownIfPossible(bus: unknown): Promise<void> {
       inject: [PORT_TOKENS.EVENT_BUS],
     },
     {
-      provide: PORT_TOKENS.MATCH_DYNAMICS,
-      useFactory: (random: RandomProvider, config: ConfigService<AppConfig, true>) =>
-        new UniformRandomGoalDynamics(random, {
-          goalCount: config.get('GOAL_COUNT', { infer: true }),
-          goalIntervalMs: config.get('GOAL_INTERVAL_MS', { infer: true }),
-          firstGoalOffsetMs: config.get('FIRST_GOAL_OFFSET_MS', { infer: true }),
-        }),
-      inject: [PORT_TOKENS.RANDOM_PROVIDER, ConfigService],
-    },
-    {
       provide: PORT_TOKENS.SIMULATION_ENGINE,
       useFactory: (clock: Clock, dynamics: MatchDynamics) =>
         new TickingSimulationEngine(clock, dynamics),
@@ -96,6 +98,7 @@ async function shutdownIfPossible(bus: unknown): Promise<void> {
         publisher: EventPublisher,
         engine: SimulationEngine,
         clock: Clock,
+        config: ConfigService<AppConfig, true>,
       ) =>
         new SimulationWorkerHandler({
           simulationRepository: simRepo,
@@ -103,7 +106,7 @@ async function shutdownIfPossible(bus: unknown): Promise<void> {
           eventPublisher: publisher,
           engine,
           clock,
-          profileId: DEFAULT_PROFILE_ID,
+          profileId: config.get('SIMULATION_PROFILE', { infer: true }),
         }),
       inject: [
         PORT_TOKENS.SIMULATION_REPOSITORY,
@@ -111,6 +114,7 @@ async function shutdownIfPossible(bus: unknown): Promise<void> {
         PORT_TOKENS.EVENT_PUBLISHER,
         PORT_TOKENS.SIMULATION_ENGINE,
         PORT_TOKENS.CLOCK,
+        ConfigService,
       ],
     },
   ],
