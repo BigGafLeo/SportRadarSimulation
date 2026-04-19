@@ -1,7 +1,6 @@
 import { Simulation } from '@simulation/domain/aggregates/simulation';
 import { SimulationId } from '@simulation/domain/value-objects/simulation-id';
 import { SimulationName } from '@simulation/domain/value-objects/simulation-name';
-import { OwnershipToken } from '@ownership/domain/value-objects/ownership-token';
 import { PRESET_MATCHES } from '@simulation/domain/value-objects/matches-preset';
 import { TeamId } from '@simulation/domain/value-objects/team-id';
 import { InvalidStateError } from '@simulation/domain/errors/invalid-state.error';
@@ -10,14 +9,14 @@ import type { SimulationFinished } from '@simulation/domain/events/simulation-fi
 
 describe('Simulation.create', () => {
   const id = SimulationId.create('550e8400-e29b-41d4-a716-446655440000');
-  const token = OwnershipToken.create('550e8400-e29b-41d4-a716-446655440001');
+  const ownerId = '550e8400-e29b-41d4-a716-446655440001';
   const name = SimulationName.create('Katar 2023');
   const now = new Date('2026-04-18T12:00:00Z');
 
   it('creates a RUNNING simulation with 0:0 scoreboard', () => {
     const sim = Simulation.create({
       id,
-      ownerToken: token,
+      ownerId,
       name,
       matches: PRESET_MATCHES,
       profileId: 'default',
@@ -38,7 +37,7 @@ describe('Simulation.create', () => {
   it('emits SimulationStarted on create', () => {
     const sim = Simulation.create({
       id,
-      ownerToken: token,
+      ownerId,
       name,
       matches: PRESET_MATCHES,
       profileId: 'default',
@@ -53,7 +52,7 @@ describe('Simulation.create', () => {
   it('pullEvents empties the buffer', () => {
     const sim = Simulation.create({
       id,
-      ownerToken: token,
+      ownerId,
       name,
       matches: PRESET_MATCHES,
       profileId: 'default',
@@ -66,14 +65,14 @@ describe('Simulation.create', () => {
 
 describe('Simulation.applyGoal', () => {
   const id = SimulationId.create('550e8400-e29b-41d4-a716-446655440000');
-  const token = OwnershipToken.create('550e8400-e29b-41d4-a716-446655440001');
+  const ownerId = '550e8400-e29b-41d4-a716-446655440001';
   const name = SimulationName.create('Katar 2023');
   const start = new Date('2026-04-18T12:00:00Z');
 
   function fresh(): Simulation {
     const sim = Simulation.create({
       id,
-      ownerToken: token,
+      ownerId,
       name,
       matches: PRESET_MATCHES,
       profileId: 'default',
@@ -118,14 +117,14 @@ describe('Simulation.applyGoal', () => {
 
 describe('Simulation.finish', () => {
   const id = SimulationId.create('550e8400-e29b-41d4-a716-446655440000');
-  const token = OwnershipToken.create('550e8400-e29b-41d4-a716-446655440001');
+  const ownerId = '550e8400-e29b-41d4-a716-446655440001';
   const name = SimulationName.create('Katar 2023');
   const start = new Date('2026-04-18T12:00:00Z');
 
   function fresh(): Simulation {
     const sim = Simulation.create({
       id,
-      ownerToken: token,
+      ownerId,
       name,
       matches: PRESET_MATCHES,
       profileId: 'default',
@@ -174,14 +173,14 @@ describe('Simulation.finish', () => {
 
 describe('Simulation.restart', () => {
   const id = SimulationId.create('550e8400-e29b-41d4-a716-446655440000');
-  const token = OwnershipToken.create('550e8400-e29b-41d4-a716-446655440001');
+  const ownerId = '550e8400-e29b-41d4-a716-446655440001';
   const name = SimulationName.create('Katar 2023');
   const start = new Date('2026-04-18T12:00:00Z');
 
   function finished(): Simulation {
     const sim = Simulation.create({
       id,
-      ownerToken: token,
+      ownerId,
       name,
       matches: PRESET_MATCHES,
       profileId: 'default',
@@ -217,7 +216,7 @@ describe('Simulation.restart', () => {
   it('rejects restart when RUNNING', () => {
     const sim = Simulation.create({
       id,
-      ownerToken: token,
+      ownerId,
       name,
       matches: PRESET_MATCHES,
       profileId: 'default',
@@ -229,14 +228,14 @@ describe('Simulation.restart', () => {
 
 describe('Simulation.fromSnapshot', () => {
   const idfs = SimulationId.create('550e8400-e29b-41d4-a716-446655440000');
-  const tokenfs = OwnershipToken.create('550e8400-e29b-41d4-a716-446655440001');
+  const ownerIdfs = '550e8400-e29b-41d4-a716-446655440001';
   const namefs = SimulationName.create('Katar 2023');
   const startfs = new Date('2026-04-18T12:00:00Z');
 
   it('round-trips via toSnapshot + fromSnapshot (RUNNING, no goals)', () => {
     const orig = Simulation.create({
       id: idfs,
-      ownerToken: tokenfs,
+      ownerId: ownerIdfs,
       name: namefs,
       matches: PRESET_MATCHES,
       profileId: 'default',
@@ -251,7 +250,7 @@ describe('Simulation.fromSnapshot', () => {
   it('round-trips after goals + finish', () => {
     const orig = Simulation.create({
       id: idfs,
-      ownerToken: tokenfs,
+      ownerId: ownerIdfs,
       name: namefs,
       matches: PRESET_MATCHES,
       profileId: 'default',
@@ -269,7 +268,7 @@ describe('Simulation.fromSnapshot', () => {
   it('restored aggregate emits events correctly on further mutation', () => {
     const orig = Simulation.create({
       id: idfs,
-      ownerToken: tokenfs,
+      ownerId: ownerIdfs,
       name: namefs,
       matches: PRESET_MATCHES,
       profileId: 'default',

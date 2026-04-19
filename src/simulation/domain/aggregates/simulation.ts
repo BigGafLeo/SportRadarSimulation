@@ -3,7 +3,6 @@ import { SimulationName } from '../value-objects/simulation-name';
 import type { Match } from '../value-objects/match';
 import type { TeamId } from '../value-objects/team-id';
 import { ScoreBoard } from '../value-objects/score-board';
-import { OwnershipToken } from '@ownership/domain/value-objects/ownership-token';
 import { InvalidStateError, type SimulationState } from '../errors/invalid-state.error';
 import type { DomainEvent } from '../events/domain-event';
 import { SimulationStarted } from '../events/simulation-started';
@@ -13,7 +12,7 @@ import { SimulationRestarted } from '../events/simulation-restarted';
 
 export interface SimulationSnapshot {
   readonly id: string;
-  readonly ownerToken: string;
+  readonly ownerId: string;
   readonly name: string;
   readonly state: SimulationState;
   readonly score: ReturnType<ScoreBoard['snapshot']>;
@@ -25,7 +24,7 @@ export interface SimulationSnapshot {
 
 export interface CreateSimulationInput {
   readonly id: SimulationId;
-  readonly ownerToken: OwnershipToken;
+  readonly ownerId: string;
   readonly name: SimulationName;
   readonly matches: readonly Match[];
   readonly profileId: string;
@@ -37,7 +36,7 @@ export class Simulation {
 
   private constructor(
     public readonly id: SimulationId,
-    public readonly ownerToken: OwnershipToken,
+    public readonly ownerId: string,
     public readonly name: SimulationName,
     public readonly profileId: string,
     private state: SimulationState,
@@ -51,7 +50,7 @@ export class Simulation {
     const scoreBoard = ScoreBoard.fromMatches(input.matches);
     const sim = new Simulation(
       input.id,
-      input.ownerToken,
+      input.ownerId,
       input.name,
       input.profileId,
       'RUNNING',
@@ -67,7 +66,7 @@ export class Simulation {
   static fromSnapshot(snapshot: SimulationSnapshot, matches: readonly Match[]): Simulation {
     return new Simulation(
       SimulationId.create(snapshot.id),
-      OwnershipToken.create(snapshot.ownerToken),
+      snapshot.ownerId,
       SimulationName.create(snapshot.name),
       snapshot.profileId,
       snapshot.state,
@@ -121,7 +120,7 @@ export class Simulation {
   toSnapshot(): SimulationSnapshot {
     return {
       id: this.id.value,
-      ownerToken: this.ownerToken.value,
+      ownerId: this.ownerId,
       name: this.name.value,
       state: this.state,
       score: this.score.snapshot(),
