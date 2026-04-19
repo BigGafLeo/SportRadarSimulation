@@ -13,6 +13,14 @@ async function tickTo(clock: FakeClock, totalMs: number): Promise<void> {
   for (let i = 0; i < totalMs; i += 1) await clock.advance(1);
 }
 
+async function registerAndGetToken(app: INestApplication, email: string): Promise<string> {
+  const res = await request(app.getHttpServer())
+    .post('/auth/register')
+    .send({ email, password: 'TestPass123!' })
+    .expect(201);
+  return res.body.accessToken;
+}
+
 describe('HTTP restart flow', () => {
   let app: INestApplication;
   let clock: FakeClock;
@@ -38,18 +46,20 @@ describe('HTTP restart flow', () => {
   });
 
   it('restart after auto-finish → score reset, state RUNNING again', async () => {
+    const token = await registerAndGetToken(app, 'restart-owner@example.com');
     const created = await request(app.getHttpServer())
       .post('/simulations')
+      .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Katar 2023' })
       .expect(201);
-    const { simulationId, ownershipToken } = created.body;
+    const { simulationId } = created.body;
 
     await tickTo(clock, 10_000);
     await worker.drainInFlight();
 
     await request(app.getHttpServer())
       .post(`/simulations/${simulationId}/restart`)
-      .set('x-simulation-token', ownershipToken)
+      .set('Authorization', `Bearer ${token}`)
       .expect(202);
 
     const afterRestart = await request(app.getHttpServer())
@@ -68,15 +78,17 @@ describe('HTTP restart flow', () => {
   });
 
   it('restart when RUNNING → 409 INVALID_STATE', async () => {
+    const token = await registerAndGetToken(app, 'restart-running@example.com');
     const created = await request(app.getHttpServer())
       .post('/simulations')
+      .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Katar 2023' })
       .expect(201);
-    const { simulationId, ownershipToken } = created.body;
+    const { simulationId } = created.body;
     await tickTo(clock, 3000);
     await request(app.getHttpServer())
       .post(`/simulations/${simulationId}/restart`)
-      .set('x-simulation-token', ownershipToken)
+      .set('Authorization', `Bearer ${token}`)
       .expect(409);
   });
 });

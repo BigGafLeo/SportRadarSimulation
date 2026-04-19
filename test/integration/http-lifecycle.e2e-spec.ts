@@ -15,6 +15,14 @@ async function tickTo(clock: FakeClock, totalMs: number): Promise<void> {
   for (let i = 0; i < totalMs; i += 1) await clock.advance(1);
 }
 
+async function registerAndGetToken(app: INestApplication, email: string): Promise<string> {
+  const res = await request(app.getHttpServer())
+    .post('/auth/register')
+    .send({ email, password: 'TestPass123!' })
+    .expect(201);
+  return res.body.accessToken;
+}
+
 describe('HTTP lifecycle — start → 9 goals → auto-finish', () => {
   let app: INestApplication;
   let module: TestingModule;
@@ -42,21 +50,24 @@ describe('HTTP lifecycle — start → 9 goals → auto-finish', () => {
     await app.close();
   });
 
-  it('POST /simulations creates running simulation with 201 + ownership token', async () => {
+  it('POST /simulations creates running simulation with 201', async () => {
+    const token = await registerAndGetToken(app, 'lifecycle1@example.com');
     const response = await request(app.getHttpServer())
       .post('/simulations')
+      .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Katar 2023' })
       .expect(201);
 
     expect(response.body.simulationId).toMatch(/^[0-9a-f-]{36}$/);
-    expect(response.body.ownershipToken).toMatch(/^[0-9a-f-]{36}$/);
     expect(response.body.state).toBe('RUNNING');
     expect(response.body.initialSnapshot.totalGoals).toBe(0);
   });
 
   it('full flow: start → 9 goals elapse → auto-finish, totalGoals=9 state=FINISHED', async () => {
+    const token = await registerAndGetToken(app, 'lifecycle2@example.com');
     const created = await request(app.getHttpServer())
       .post('/simulations')
+      .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Katar 2023' })
       .expect(201);
     const simId = created.body.simulationId;
@@ -71,8 +82,10 @@ describe('HTTP lifecycle — start → 9 goals → auto-finish', () => {
   });
 
   it('GET /simulations lists created simulations', async () => {
+    const token = await registerAndGetToken(app, 'lifecycle3@example.com');
     await request(app.getHttpServer())
       .post('/simulations')
+      .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Katar 2023' })
       .expect(201);
     const list = await request(app.getHttpServer()).get('/simulations').expect(200);
