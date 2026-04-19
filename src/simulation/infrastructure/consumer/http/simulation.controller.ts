@@ -40,11 +40,11 @@ function toResponse(snap: SimulationSnapshot): SimulationResponseShape {
   };
 }
 
-@UseGuards(JwtAuthGuard)
 @Controller('simulations')
 export class SimulationController {
   constructor(private readonly orchestrator: SimulationOrchestrator) {}
 
+  @UseGuards(JwtAuthGuard)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(
@@ -67,6 +67,7 @@ export class SimulationController {
     };
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post(':id/finish')
   @HttpCode(HttpStatus.ACCEPTED)
   async finish(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser): Promise<void> {
@@ -76,6 +77,7 @@ export class SimulationController {
     });
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post(':id/restart')
   @HttpCode(HttpStatus.ACCEPTED)
   async restart(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser): Promise<void> {
