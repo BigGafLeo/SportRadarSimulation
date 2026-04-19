@@ -38,14 +38,19 @@ import { shutdownIfPossible } from '@shared/messaging/shutdown.util';
     {
       provide: PORT_TOKENS.SIMULATION_REPOSITORY,
       useFactory: async (config: ConfigService<AppConfig, true>) => {
-        const { createRedisClient } = await import('../shared/infrastructure/redis.client');
-        const { RedisSimulationRepository } =
-          await import('../simulation/infrastructure/persistence/redis-simulation.repository');
-        const { PRESET_MATCHES } =
-          await import('../simulation/domain/value-objects/matches-preset');
-        const client = createRedisClient(config.get('REDIS_URL', { infer: true }));
-        await client.connect();
-        return new RedisSimulationRepository(client, PRESET_MATCHES);
+        const mode = config.get('PERSISTENCE_MODE', { infer: true });
+        if (mode === 'postgres') {
+          const { getPrismaClient } = await import('../shared/infrastructure/prisma.client');
+          const { PostgresSimulationRepository } =
+            await import('../simulation/infrastructure/persistence/postgres-simulation.repository');
+          const { PRESET_MATCHES } =
+            await import('../simulation/domain/value-objects/matches-preset');
+          const prisma = getPrismaClient(config.get('DATABASE_URL', { infer: true }));
+          return new PostgresSimulationRepository(prisma, PRESET_MATCHES);
+        }
+        const { InMemorySimulationRepository } =
+          await import('../simulation/infrastructure/persistence/in-memory-simulation.repository');
+        return new InMemorySimulationRepository();
       },
       inject: [ConfigService],
     },
@@ -125,5 +130,7 @@ export class WorkerModule implements OnModuleInit, OnModuleDestroy {
     await this.worker.shutdown();
     await shutdownIfPossible(this.commandBus);
     await shutdownIfPossible(this.eventBus);
+    const { disconnectPrismaClient } = await import('../shared/infrastructure/prisma.client');
+    await disconnectPrismaClient();
   }
 }
