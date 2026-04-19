@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JwtModule, JwtService } from '@nestjs/jwt';
+import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import type { AppConfig } from '@shared/config/config.schema';
 import { AUTH_GUARD } from '@shared/auth/auth.constants';
+import { AUTH_PORT_TOKENS } from './domain/ports/tokens';
 import { RegisterUseCase } from './application/use-cases/register.use-case';
 import { LoginUseCase } from './application/use-cases/login.use-case';
 import { JwtStrategy } from './infrastructure/security/jwt.strategy';
@@ -12,9 +13,6 @@ import { Argon2PasswordHasher } from './infrastructure/security/argon2-password-
 import { AuthController } from './infrastructure/consumer/http/auth.controller';
 import type { UserRepository } from './domain/ports/user-repository.port';
 import type { PasswordHasher } from './domain/ports/password-hasher.port';
-
-const USER_REPOSITORY = Symbol('UserRepository');
-const PASSWORD_HASHER = Symbol('PasswordHasher');
 
 @Module({
   imports: [
@@ -35,10 +33,11 @@ const PASSWORD_HASHER = Symbol('PasswordHasher');
         new JwtStrategy(config.get('JWT_SECRET', { infer: true })),
       inject: [ConfigService],
     },
+    JwtAuthGuard,
     { provide: AUTH_GUARD, useClass: JwtAuthGuard },
-    { provide: PASSWORD_HASHER, useClass: Argon2PasswordHasher },
+    { provide: AUTH_PORT_TOKENS.PASSWORD_HASHER, useClass: Argon2PasswordHasher },
     {
-      provide: USER_REPOSITORY,
+      provide: AUTH_PORT_TOKENS.USER_REPOSITORY,
       useFactory: async (config: ConfigService<AppConfig, true>) => {
         const mode = config.get('PERSISTENCE_MODE', { infer: true });
         if (mode === 'postgres') {
@@ -58,22 +57,12 @@ const PASSWORD_HASHER = Symbol('PasswordHasher');
       provide: RegisterUseCase,
       useFactory: (repo: UserRepository, hasher: PasswordHasher) =>
         new RegisterUseCase(repo, hasher),
-      inject: [USER_REPOSITORY, PASSWORD_HASHER],
+      inject: [AUTH_PORT_TOKENS.USER_REPOSITORY, AUTH_PORT_TOKENS.PASSWORD_HASHER],
     },
     {
       provide: LoginUseCase,
       useFactory: (repo: UserRepository, hasher: PasswordHasher) => new LoginUseCase(repo, hasher),
-      inject: [USER_REPOSITORY, PASSWORD_HASHER],
-    },
-    {
-      provide: AuthController,
-      useFactory: (
-        register: RegisterUseCase,
-        login: LoginUseCase,
-        jwtService: JwtService,
-        repo: UserRepository,
-      ) => new AuthController(register, login, jwtService, repo),
-      inject: [RegisterUseCase, LoginUseCase, JwtService, USER_REPOSITORY],
+      inject: [AUTH_PORT_TOKENS.USER_REPOSITORY, AUTH_PORT_TOKENS.PASSWORD_HASHER],
     },
   ],
   exports: [AUTH_GUARD, JwtAuthGuard, JwtStrategy],

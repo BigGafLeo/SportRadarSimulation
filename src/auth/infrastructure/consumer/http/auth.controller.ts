@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   Post,
   UnauthorizedException,
   UseGuards,
@@ -14,6 +15,7 @@ import { RegisterUseCase } from '@auth/application/use-cases/register.use-case';
 import { LoginUseCase } from '@auth/application/use-cases/login.use-case';
 import { EmailAlreadyExistsError } from '@auth/domain/errors/email-already-exists.error';
 import { InvalidCredentialsError } from '@auth/domain/errors/invalid-credentials.error';
+import { AUTH_PORT_TOKENS } from '@auth/domain/ports/tokens';
 import type { UserRepository } from '@auth/domain/ports/user-repository.port';
 import { UserId } from '@auth/domain/value-objects/user-id';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
@@ -33,7 +35,7 @@ export class AuthController {
     private readonly registerUseCase: RegisterUseCase,
     private readonly loginUseCase: LoginUseCase,
     private readonly jwtService: JwtService,
-    private readonly userRepository: UserRepository,
+    @Inject(AUTH_PORT_TOKENS.USER_REPOSITORY) private readonly userRepository: UserRepository,
   ) {}
 
   @Post('register')
