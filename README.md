@@ -2,7 +2,15 @@
 
 Zadanie rekrutacyjne SportRadar: REST + WebSocket API do symulacji meczów piłkarskich.
 
-**Status**: Phase 3 profile-driven (tag `v3.0-profile-driven`). BullMQ + Redis transport, workers jako osobne procesy, 3 profile dynamics (`uniform-realtime`, `poisson-accelerated`, `fast-markov`). Pełna funkcjonalność z PDFa + beyond (multi-simulation, REST + WebSocket, 206+ testów).
+**Status**: Phase 4a Postgres persistence (tag `v4.1-postgres-persistence`). BullMQ + Redis transport, workers jako osobne procesy, 3 profile dynamics (`uniform-realtime`, `poisson-accelerated`, `fast-markov`), symulacje persystowane w PostgreSQL. Pełna funkcjonalność z PDFa + beyond (multi-simulation, REST + WebSocket, 206+ testów).
+
+- ✅ **Phase 4a — Postgres simulation persistence** (`v4.1-postgres-persistence`)
+  - `PostgresSimulationRepository` via Prisma 5.x; hybrid schema (columns + JSONB `score_snapshot`)
+  - Auto-migrate on container startup (`prisma migrate deploy`)
+  - docker-compose adds postgres:16-alpine with healthcheck + named volume
+  - `RedisSimulationRepository` removed (ADR-008); `PERSISTENCE_MODE=inmemory|postgres`
+  - **Caveat:** ownership tokens still in-memory — restart resets tokens. Phase 4b adds JWT auth + persisted users.
+  - ADRs: 006 (full swap), 007 (schema hybrid), 008 (drop Redis repo)
 
 ## Stack
 
@@ -72,6 +80,35 @@ To scale workers per profile:
 docker compose up -d --scale worker-poisson=5
 ```
 
+### Postgres persistence
+
+`docker compose up -d` starts Postgres alongside Redis + orchestrator + workers. Simulations persist across restarts:
+
+```bash
+docker compose down              # keep volume
+docker compose up -d              # sims still there
+```
+
+To reset everything (drop the named volume):
+```bash
+docker compose down -v
+```
+
+Direct DB inspection:
+```bash
+docker exec sportradar-postgres psql -U sportradar -d sportradar -c "SELECT id, name, state, total_goals, profile_id FROM simulations ORDER BY started_at DESC;"
+```
+
+External connection (host port 5434):
+```bash
+psql -h localhost -p 5434 -U sportradar -d sportradar
+```
+
+Wipe simulation state without restarting containers:
+```bash
+docker exec sportradar-postgres psql -U sportradar -d sportradar -c "TRUNCATE simulations;"
+```
+
 ### Testy
 
 ```bash
@@ -103,6 +140,8 @@ Wszystkie env vars są zdefiniowane i walidowane przez Zod w `src/shared/config/
 | `START_COOLDOWN_MS` | `5000` | Throttle między ignition events per owner |
 | `FINISHED_RETENTION_MS` | `3600000` | TTL dla FINISHED simulations (GC) |
 | `GC_INTERVAL_MS` | `300000` | Częstotliwość GC worker'a |
+| `PERSISTENCE_MODE` | `inmemory` | `inmemory` (dev/test) or `postgres` (prod). Was `redis` before Phase 4a — now removed. |
+| `DATABASE_URL` | `postgresql://sportradar:sportradar@localhost:5432/sportradar` | Postgres connection string. Required when `PERSISTENCE_MODE=postgres`. In docker-compose, host:5434 → container:5432. |
 
 ## Requirements → Test mapping
 
@@ -146,7 +185,8 @@ Skrót:
 | 1 | `v1.0-mvp-in-process` | Pełne wymagania PDFa, InMemory adapters, single profile |
 | 2 | `v2.0-bullmq-distributed` | BullMQ + Redis, worker jako osobny entrypoint |
 | 3 | `v3.0-profile-driven` ✅ | 3 profile w `PROFILES` registry: `uniform-realtime`, `poisson-accelerated`, `fast-markov`; `POST /simulations { profile? }`; docker-compose: worker-uniform ×2, worker-poisson ×1, worker-markov ×1; ADRs 002–005 |
-| 4 | `v4.0-persistence-auth` | PostgreSQL + Prisma, JWT auth |
+| 4a | `v4.1-postgres-persistence` ✅ | `PostgresSimulationRepository` (Prisma 5.x, hybrid schema); auto-migrate on startup; `PERSISTENCE_MODE=inmemory\|postgres`; Redis repo removed; ADRs 006–008 |
+| 4b | `v4.0-persistence-auth` | JWT auth, user accounts, persisted ownership tokens |
 | 5 | `v5.0-rich-operations` | Pause/resume, rich events, replay |
 | 6 | `v6.0-ops-ready` | Health checks, structured logs, OpenAPI, metrics |
 
