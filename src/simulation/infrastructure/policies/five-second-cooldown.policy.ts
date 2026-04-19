@@ -1,5 +1,4 @@
 import type { ThrottlePolicy } from '@simulation/domain/ports/throttle-policy.port';
-import type { OwnershipToken } from '@ownership/domain/value-objects/ownership-token';
 
 export class FiveSecondCooldownPolicy implements ThrottlePolicy {
   /**
@@ -7,7 +6,7 @@ export class FiveSecondCooldownPolicy implements ThrottlePolicy {
    */
   constructor(private readonly cooldownMs: number = 5000) {}
 
-  canIgnite(_token: OwnershipToken, lastIgnitionAt: Date | null, now: Date): boolean {
+  canIgnite(_userId: string, lastIgnitionAt: Date | null, now: Date): boolean {
     if (lastIgnitionAt === null) return true;
     return now.getTime() - lastIgnitionAt.getTime() >= this.cooldownMs;
   }

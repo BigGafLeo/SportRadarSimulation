@@ -1,6 +1,5 @@
 import type { Simulation } from '../aggregates/simulation';
 import type { SimulationId } from '../value-objects/simulation-id';
-import type { OwnershipToken } from '@ownership/domain/value-objects/ownership-token';
 
 /**
  * Persistence port for Simulation aggregate.
@@ -10,6 +9,7 @@ export interface SimulationRepository {
   save(simulation: Simulation): Promise<void>;
   findById(id: SimulationId): Promise<Simulation | null>;
   findAll(): Promise<readonly Simulation[]>;
-  findByOwner(token: OwnershipToken): Promise<readonly Simulation[]>;
+  findByOwner(ownerId: string): Promise<readonly Simulation[]>;
+  findLastStartedAtByOwner(ownerId: string): Promise<Date | null>;
   delete(id: SimulationId): Promise<void>;
 }
