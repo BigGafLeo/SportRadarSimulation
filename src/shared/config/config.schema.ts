@@ -19,6 +19,11 @@ export const ConfigSchema = z.object({
   PERSISTENCE_MODE: z.enum(['inmemory', 'redis']).default('inmemory'),
   APP_MODE: z.enum(['orchestrator', 'worker']).default('orchestrator'),
   BULL_BOARD_ENABLED: z.coerce.boolean().default(true),
+
+  // Phase 3+ — profile-driven workers (hardcoded enum: config must not depend on infra)
+  SIMULATION_PROFILE: z
+    .enum(['uniform-realtime', 'poisson-accelerated', 'fast-markov'])
+    .default('uniform-realtime'),
 });
 
 export type AppConfig = z.infer<typeof ConfigSchema>;
