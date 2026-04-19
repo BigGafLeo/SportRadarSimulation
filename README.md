@@ -2,15 +2,51 @@
 
 Zadanie rekrutacyjne SportRadar: REST + WebSocket API do symulacji meczów piłkarskich.
 
-**Status**: Phase 4a Postgres persistence (tag `v4.1-postgres-persistence`). BullMQ + Redis transport, workers jako osobne procesy, 3 profile dynamics (`uniform-realtime`, `poisson-accelerated`, `fast-markov`), symulacje persystowane w PostgreSQL. Pełna funkcjonalność z PDFa + beyond (multi-simulation, REST + WebSocket, 206+ testów).
+**Status**: Phase 4b JWT auth + ownership refactor (branch `phase-4-persistence-auth`). BullMQ + Redis transport, workers jako osobne procesy, 3 profile dynamics (`uniform-realtime`, `poisson-accelerated`, `fast-markov`), symulacje persystowane w PostgreSQL, JWT auth z user accounts. Pełna funkcjonalność z PDFa + beyond (multi-simulation, REST + WebSocket, 206+ testów).
+
+- ✅ **Phase 4b — JWT auth + ownership refactor** (branch `phase-4-persistence-auth`)
+  - JWT authentication via `@nestjs/jwt` + `@nestjs/passport` + `passport-jwt`
+  - Password hashing with argon2 (`PasswordHasher` port — argon2 adapter + fake for tests)
+  - `User` aggregate with `UserId`, `Email`, `HashedPassword` value objects; `UserRepository` port with Postgres + in-memory implementations
+  - `RegisterUseCase` + `LoginUseCase`; `JwtAuthGuard` + `@CurrentUser()` decorator
+  - Ownership refactor: `ownerToken: OwnershipToken` → `ownerId: string` (userId from JWT); `src/ownership/` module retired (ADR-010)
+  - Three-step non-destructive migration (add nullable `owner_id` → backfill → NOT NULL + drop `owner_token`)
+  - Demo user seeded via migration: `demo@sportradar.local` / `Demo1234!`
+  - Mutating endpoints (start, finish, restart) require Bearer token; read-only (list, get, WS) remain unauthenticated
+  - ADRs: 009 (auth architecture), 010 (ownership retirement)
 
 - ✅ **Phase 4a — Postgres simulation persistence** (`v4.1-postgres-persistence`)
   - `PostgresSimulationRepository` via Prisma 5.x; hybrid schema (columns + JSONB `score_snapshot`)
   - Auto-migrate on container startup (`prisma migrate deploy`)
   - docker-compose adds postgres:16-alpine with healthcheck + named volume
   - `RedisSimulationRepository` removed (ADR-008); `PERSISTENCE_MODE=inmemory|postgres`
-  - **Caveat:** ownership tokens still in-memory — restart resets tokens. Phase 4b adds JWT auth + persisted users.
   - ADRs: 006 (full swap), 007 (schema hybrid), 008 (drop Redis repo)
+
+## Auth endpoints
+
+```
+POST /auth/register  { email, password }     → 201 { accessToken, user }
+POST /auth/login     { email, password }     → 200 { accessToken, user }
+GET  /auth/me        [Bearer token required] → 200 { id, email, createdAt }
+```
+
+**Demo user:** `demo@sportradar.local` / `Demo1234!`
+
+**Bearer token usage:** Send `Authorization: Bearer <token>` for mutating simulation endpoints (start, finish, restart). Read-only endpoints (list, get, WS) remain unauthenticated.
+
+### Guard matrix
+
+| Endpoint | Auth | Failure |
+|---|---|---|
+| `POST /simulations` | Bearer | 401 |
+| `POST /simulations/:id/finish` | Bearer | 401 |
+| `POST /simulations/:id/restart` | Bearer | 401 |
+| `GET /simulations` | none | — |
+| `GET /simulations/:id` | none | — |
+| `WS subscribe/unsubscribe` | none | — |
+| `POST /auth/register` | none | — |
+| `POST /auth/login` | none | — |
+| `GET /auth/me` | Bearer | 401 |
 
 ## Stack
 
@@ -142,6 +178,9 @@ Wszystkie env vars są zdefiniowane i walidowane przez Zod w `src/shared/config/
 | `GC_INTERVAL_MS` | `300000` | Częstotliwość GC worker'a |
 | `PERSISTENCE_MODE` | `inmemory` | `inmemory` (dev/test) or `postgres` (prod). Was `redis` before Phase 4a — now removed. |
 | `DATABASE_URL` | `postgresql://sportradar:sportradar@localhost:5432/sportradar` | Postgres connection string. Required when `PERSISTENCE_MODE=postgres`. In docker-compose, host:5434 → container:5432. |
+| `JWT_SECRET` | (dev default in config) | HMAC secret for JWT signing (min 32 chars) |
+| `JWT_EXPIRES_IN` | `900` | Access token TTL in seconds |
+| `PASSWORD_MIN_LENGTH` | `8` | Minimum password length for registration |
 
 ## Requirements → Test mapping
 
@@ -186,7 +225,7 @@ Skrót:
 | 2 | `v2.0-bullmq-distributed` | BullMQ + Redis, worker jako osobny entrypoint |
 | 3 | `v3.0-profile-driven` ✅ | 3 profile w `PROFILES` registry: `uniform-realtime`, `poisson-accelerated`, `fast-markov`; `POST /simulations { profile? }`; docker-compose: worker-uniform ×2, worker-poisson ×1, worker-markov ×1; ADRs 002–005 |
 | 4a | `v4.1-postgres-persistence` ✅ | `PostgresSimulationRepository` (Prisma 5.x, hybrid schema); auto-migrate on startup; `PERSISTENCE_MODE=inmemory\|postgres`; Redis repo removed; ADRs 006–008 |
-| 4b | `v4.0-persistence-auth` | JWT auth, user accounts, persisted ownership tokens |
+| 4b | `v4.2-auth` ✅ | JWT auth, user accounts, ownership refactor (ownerToken → ownerId), `src/ownership/` retired, ADRs 009–010 |
 | 5 | `v5.0-rich-operations` | Pause/resume, rich events, replay |
 | 6 | `v6.0-ops-ready` | Health checks, structured logs, OpenAPI, metrics |
 

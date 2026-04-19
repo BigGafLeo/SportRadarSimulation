@@ -7,6 +7,40 @@ Projekt używa [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [4.2.0] — Phase 4b: Auth + Ownership Refactor
+
+### Added
+- JWT authentication with `@nestjs/jwt` + `@nestjs/passport` + `passport-jwt`
+- User registration and login endpoints (`POST /auth/register`, `POST /auth/login`, `GET /auth/me`)
+- `User` aggregate with `UserId`, `Email`, `HashedPassword` value objects
+- `UserRepository` port with Postgres + in-memory implementations
+- `PasswordHasher` port with argon2 + fake implementations
+- `RegisterUseCase` + `LoginUseCase`
+- `JwtAuthGuard` + `@CurrentUser()` decorator
+- Shared `AuthenticatedUser` contract for loose coupling
+- Prisma `User` model with email UNIQUE constraint
+- Three-step non-destructive migration (add nullable → backfill → NOT NULL + drop)
+- Demo user (`demo@sportradar.local` / `Demo1234!`) seeded via migration
+- E2E tests for auth flow and simulation + auth integration
+- ADR-009 (auth architecture) + ADR-010 (ownership retirement)
+
+### Changed
+- Simulation ownership: `ownerToken: OwnershipToken` → `ownerId: string` (user ID from JWT)
+- `SimulationOrchestrator`: removed `ownershipRepository` + `tokenGenerator` deps
+- `ThrottlePolicy`: parameter `OwnershipToken` → `string` (userId)
+- `SimulationRepository.findByOwner`: `OwnershipToken` → `string`
+- New `SimulationRepository.findLastStartedAtByOwner(ownerId)` replaces ownership-based throttle
+- `SimulationController`: `@Headers('x-simulation-token')` → `@UseGuards(JwtAuthGuard) @CurrentUser()`
+- Mutating simulation endpoints (start, finish, restart) now require Bearer token
+- Read-only endpoints (list, get, WS) remain unauthenticated
+
+### Removed
+- `src/ownership/` module (entire directory — stepping stone retired)
+- `OwnershipToken`, `OwnershipRepository`, `OwnershipTokenGenerator` ports
+- `UnknownTokenError`
+- `x-simulation-token` header
+- `ownershipToken` from API responses
+
 ## [4.1.0] — 2026-04-19 — Phase 4a: Postgres simulation persistence
 
 ### Added
