@@ -60,17 +60,9 @@ interface GatewayWithServer {
     },
     {
       provide: PORT_TOKENS.SIMULATION_REPOSITORY,
-      useFactory: async (config: ConfigService<AppConfig, true>) => {
-        const mode = config.get('PERSISTENCE_MODE', { infer: true });
-        if (mode === 'redis') {
-          const { createRedisClient } = await import('../shared/infrastructure/redis.client');
-          const { RedisSimulationRepository } =
-            await import('./infrastructure/persistence/redis-simulation.repository');
-          const { PRESET_MATCHES } = await import('./domain/value-objects/matches-preset');
-          const client = createRedisClient(config.get('REDIS_URL', { infer: true }));
-          await client.connect();
-          return new RedisSimulationRepository(client, PRESET_MATCHES);
-        }
+      useFactory: (_config: ConfigService<AppConfig, true>) => {
+        // Phase 4: postgres branch wired in Task 4b (Prisma adapter).
+        // PERSISTENCE_MODE='postgres' falls through to InMemory until that adapter lands.
         return new InMemorySimulationRepository();
       },
       inject: [ConfigService],
