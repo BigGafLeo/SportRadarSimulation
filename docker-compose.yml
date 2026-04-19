@@ -21,7 +21,8 @@ services:
       POSTGRES_USER: sportradar
       POSTGRES_PASSWORD: sportradar
     ports:
-      - '5432:5432'
+      # Host 5434 → container 5432. 5432/5433 taken by other projects' DB containers on this machine.
+      - '5434:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:

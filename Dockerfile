@@ -5,6 +5,10 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Prisma query engine needs libssl at runtime. Install openssl for both
+# `prisma generate` (postinstall in next step) and `prisma migrate` (runner stage).
+RUN apk add --no-cache openssl
+
 # Prisma schema must be present before `npm ci` (postinstall runs prisma generate)
 # and before `npm run build` (TS references generated client types).
 COPY package.json package-lock.json ./
@@ -21,6 +25,8 @@ FROM node:20-alpine AS deps
 
 WORKDIR /app
 
+RUN apk add --no-cache openssl
+
 COPY package.json package-lock.json ./
 # postinstall runs `prisma generate`, so schema must be present before npm ci
 COPY prisma ./prisma
@@ -33,6 +39,9 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV APP_MODE=orchestrator
+
+# Prisma migrate + query engine need libssl at runtime
+RUN apk add --no-cache openssl
 
 # Create non-root user
 RUN addgroup -S app && adduser -S app -G app
