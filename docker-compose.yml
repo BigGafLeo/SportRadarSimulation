@@ -34,7 +34,7 @@ services:
       BULL_BOARD_ENABLED: 'true'
     restart: unless-stopped
 
-  worker:
+  worker-uniform:
     build:
       context: .
       dockerfile: Dockerfile
@@ -50,6 +50,49 @@ services:
       TRANSPORT_MODE: bullmq
       PERSISTENCE_MODE: redis
       REDIS_URL: redis://redis:6379
+      SIMULATION_PROFILE: uniform-realtime
     deploy:
       replicas: 2
+    restart: unless-stopped
+
+  worker-poisson:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sportradar-simulation:local
+    depends_on:
+      redis:
+        condition: service_healthy
+      orchestrator:
+        condition: service_started
+    environment:
+      NODE_ENV: development
+      APP_MODE: worker
+      TRANSPORT_MODE: bullmq
+      PERSISTENCE_MODE: redis
+      REDIS_URL: redis://redis:6379
+      SIMULATION_PROFILE: poisson-accelerated
+    deploy:
+      replicas: 1
+    restart: unless-stopped
+
+  worker-markov:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sportradar-simulation:local
+    depends_on:
+      redis:
+        condition: service_healthy
+      orchestrator:
+        condition: service_started
+    environment:
+      NODE_ENV: development
+      APP_MODE: worker
+      TRANSPORT_MODE: bullmq
+      PERSISTENCE_MODE: redis
+      REDIS_URL: redis://redis:6379
+      SIMULATION_PROFILE: fast-markov
+    deploy:
+      replicas: 1
     restart: unless-stopped
