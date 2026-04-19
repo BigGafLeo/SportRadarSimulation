@@ -10,6 +10,7 @@ import { LoginUseCase } from './application/use-cases/login.use-case';
 import { JwtStrategy } from './infrastructure/security/jwt.strategy';
 import { JwtAuthGuard } from './infrastructure/security/jwt-auth.guard';
 import { Argon2PasswordHasher } from './infrastructure/security/argon2-password-hasher';
+import { createUserRepository } from './infrastructure/persistence/user-repository.factory';
 import { AuthController } from './infrastructure/consumer/http/auth.controller';
 import type { UserRepository } from './domain/ports/user-repository.port';
 import type { PasswordHasher } from './domain/ports/password-hasher.port';
@@ -38,19 +39,7 @@ import type { PasswordHasher } from './domain/ports/password-hasher.port';
     { provide: AUTH_PORT_TOKENS.PASSWORD_HASHER, useClass: Argon2PasswordHasher },
     {
       provide: AUTH_PORT_TOKENS.USER_REPOSITORY,
-      useFactory: async (config: ConfigService<AppConfig, true>) => {
-        const mode = config.get('PERSISTENCE_MODE', { infer: true });
-        if (mode === 'postgres') {
-          const { getPrismaClient } = await import('../shared/infrastructure/prisma.client');
-          const { PostgresUserRepository } =
-            await import('./infrastructure/persistence/postgres-user.repository');
-          const prisma = getPrismaClient(config.get('DATABASE_URL', { infer: true }));
-          return new PostgresUserRepository(prisma);
-        }
-        const { InMemoryUserRepository } =
-          await import('./infrastructure/persistence/in-memory-user.repository');
-        return new InMemoryUserRepository();
-      },
+      useFactory: (config: ConfigService<AppConfig, true>) => createUserRepository(config),
       inject: [ConfigService],
     },
     {
