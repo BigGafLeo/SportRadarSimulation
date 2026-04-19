@@ -7,13 +7,7 @@ import { OwnershipToken } from '@ownership/domain/value-objects/ownership-token'
 import { PRESET_MATCHES, PRESET_TEAMS } from '@simulation/domain/value-objects/matches-preset';
 import { GoalScored } from '@simulation/domain/events/goal-scored';
 
-const DEFAULT_CONFIG = {
-  durationMs: 9000,
-  goalIntervalMs: 1000,
-  goalCount: 9,
-  firstGoalOffsetMs: 1000,
-  startCooldownMs: 5000,
-};
+const DEFAULT_CONFIG = { goalCount: 9, goalIntervalMs: 1000, firstGoalOffsetMs: 1000 };
 
 function makeSim(): Simulation {
   const sim = Simulation.create({

@@ -2,7 +2,7 @@
 
 Zadanie rekrutacyjne SportRadar: REST + WebSocket API do symulacji meczów piłkarskich.
 
-**Status**: Phase 2 distributed (tag `v2.0-bullmq-distributed`). BullMQ + Redis transport, workers jako osobne procesy. Pełna funkcjonalność z PDFa + beyond (multi-simulation, REST + WebSocket, 206+ testów).
+**Status**: Phase 3 profile-driven (tag `v3.0-profile-driven`). BullMQ + Redis transport, workers jako osobne procesy, 3 profile dynamics (`uniform-realtime`, `poisson-accelerated`, `fast-markov`). Pełna funkcjonalność z PDFa + beyond (multi-simulation, REST + WebSocket, 206+ testów).
 
 ## Stack
 
@@ -49,6 +49,27 @@ docker compose up -d --scale worker=4 --build
 Single-process mode (Phase 1 style) via env:
 ```bash
 TRANSPORT_MODE=inmemory PERSISTENCE_MODE=inmemory npm run start:dev
+```
+
+### Profiles
+
+`POST /simulations` accepts an optional `profile` field selecting the dynamics + clock combo:
+
+| Profile | Dynamics | Clock | Demo behaviour |
+|---|---|---|---|
+| `uniform-realtime` (default) | UniformRandomGoal | SystemClock | 9 goals over 9s, fixed interval |
+| `poisson-accelerated` | Poisson (mean 2.7/team) | AcceleratedClock(600×) | 90-min match compressed to ~9s, realistic variance |
+| `fast-markov` | FastMarkov (state machine) | AcceleratedClock(1000×) | event-driven match progression |
+
+```bash
+curl -X POST http://localhost:3000/simulations \
+  -H 'Content-Type: application/json' \
+  -d '{"name": "Katar 2023 Match", "profile": "poisson-accelerated"}'
+```
+
+To scale workers per profile:
+```bash
+docker compose up -d --scale worker-poisson=5
 ```
 
 ### Testy
@@ -124,7 +145,7 @@ Skrót:
 | 0 | `v0.1-scaffold` | Scaffolding, CI, Docker, folder structure |
 | 1 | `v1.0-mvp-in-process` | Pełne wymagania PDFa, InMemory adapters, single profile |
 | 2 | `v2.0-bullmq-distributed` | BullMQ + Redis, worker jako osobny entrypoint |
-| 3 | `v3.0-profile-driven` | Poisson / Markov dynamics, API profile param |
+| 3 | `v3.0-profile-driven` ✅ | 3 profile w `PROFILES` registry: `uniform-realtime`, `poisson-accelerated`, `fast-markov`; `POST /simulations { profile? }`; docker-compose: worker-uniform ×2, worker-poisson ×1, worker-markov ×1; ADRs 002–005 |
 | 4 | `v4.0-persistence-auth` | PostgreSQL + Prisma, JWT auth |
 | 5 | `v5.0-rich-operations` | Pause/resume, rich events, replay |
 | 6 | `v6.0-ops-ready` | Health checks, structured logs, OpenAPI, metrics |

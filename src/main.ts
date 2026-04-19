@@ -6,6 +6,8 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { AppModule } from './app.module';
 import type { AppConfig } from './shared/config/config.schema';
+import { PROFILE_IDS } from './simulation/infrastructure/profiles/profile-registry';
+import { SIMULATION_TOPICS } from './simulation/application/commands/simulation-topics';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
@@ -39,10 +41,14 @@ async function mountBullBoard(app: INestApplication): Promise<void> {
   const parsed = new URL(redisUrl);
   const connection = { host: parsed.hostname, port: Number(parsed.port || 6379) };
 
-  // Create independent Queue instances pointing at the same Redis — Bull Board
-  // reads stats via Redis, not via object identity. This ensures all 3 known
-  // topics are visible from the moment UI opens, even before any job flows.
-  const queueNames = ['simulation.run.default', 'simulation.abort', 'simulation.events'];
+  // Per-profile run topics + shared abort/events. Bull Board reads stats via
+  // Redis (not object identity), so registering the names up-front makes all
+  // queues visible the moment UI opens — even before traffic flows.
+  const queueNames = [
+    ...PROFILE_IDS.map((id) => SIMULATION_TOPICS.RUN(id)),
+    SIMULATION_TOPICS.ABORT,
+    'simulation.events',
+  ];
   const queues = queueNames.map((name) => new Queue(name, { connection }));
   const adapters = queues.map((q) => new BullMQAdapter(q));
 

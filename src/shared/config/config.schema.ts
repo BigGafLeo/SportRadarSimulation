@@ -4,11 +4,7 @@ export const ConfigSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
 
-  // Simulation config (Phase 1 defaults per spec §5.6)
-  SIMULATION_DURATION_MS: z.coerce.number().int().positive().default(9000),
-  GOAL_INTERVAL_MS: z.coerce.number().int().positive().default(1000),
-  GOAL_COUNT: z.coerce.number().int().positive().default(9),
-  FIRST_GOAL_OFFSET_MS: z.coerce.number().int().nonnegative().default(1000),
+  // Simulation policy config (per-dynamics timing now lives in profile registry).
   START_COOLDOWN_MS: z.coerce.number().int().nonnegative().default(5000),
   FINISHED_RETENTION_MS: z.coerce.number().int().positive().default(3_600_000),
   GC_INTERVAL_MS: z.coerce.number().int().positive().default(300_000),
@@ -19,6 +15,11 @@ export const ConfigSchema = z.object({
   PERSISTENCE_MODE: z.enum(['inmemory', 'redis']).default('inmemory'),
   APP_MODE: z.enum(['orchestrator', 'worker']).default('orchestrator'),
   BULL_BOARD_ENABLED: z.coerce.boolean().default(true),
+
+  // Phase 3+ — profile-driven workers (hardcoded enum: config must not depend on infra)
+  SIMULATION_PROFILE: z
+    .enum(['uniform-realtime', 'poisson-accelerated', 'fast-markov'])
+    .default('uniform-realtime'),
 });
 
 export type AppConfig = z.infer<typeof ConfigSchema>;

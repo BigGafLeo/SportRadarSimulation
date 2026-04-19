@@ -7,6 +7,41 @@ Projekt używa [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.0.0] — 2026-04-19 — Phase 3: Profile-driven specialization
+
+### Added
+- 3 profile uruchomieniowe: `uniform-realtime` (default), `poisson-accelerated`, `fast-markov`
+- `Profile` interface + const `PROFILES` registry w `src/simulation/infrastructure/profiles/`
+- `PoissonGoalDynamics` — single Poisson process across all PRESET_TEAMS, exponential inter-arrival sampling
+- `FastMarkovDynamics` — Markov chain over match states, internal walk to GOAL state with single emission
+- `AcceleratedClock` — wraps any `Clock`, dzieli `sleep(ms)` przez factor; `now()` zwraca real time
+- `RandomProvider.float(): number` (port extension; impl w Crypto + Seeded)
+- `POST /simulations` przyjmuje opcjonalny `profile` (Zod whitelist)
+- `SIMULATION_PROFILE` env var (config schema)
+- docker-compose: `worker-uniform` (×2), `worker-poisson` (×1), `worker-markov` (×1)
+- Integration test: per-profile topic routing (Testcontainers)
+- E2E test: profile param defaults / acceptance / rejection
+
+### Changed
+- **Breaking**: `SimulationConfig` interface usunięty. Zastąpiony przez:
+  - `CoreSimulationConfig { durationMs }` (advisory metadata, używana przez Poisson/Markov)
+  - per-dynamics config interfaces (`UniformDynamicsConfig`, `PoissonDynamicsConfig`, `MarkovDynamicsConfig`) embedded w klasach
+- `SimulationOrchestrator` deps: `config: SimulationConfig` → `cooldownMs: number`
+- `WorkerModule`: hardcoded `DEFAULT_PROFILE_ID` → env-driven via `SIMULATION_PROFILE` + registry lookup
+
+### ADRs
+- ADR-002: SimulationConfig split into core + per-dynamics
+- ADR-003: Profile registry as const map
+- ADR-004: Per-profile topic routing `simulation.run.{profileId}`
+- ADR-005: AcceleratedClock semantics (real timestamps, virtual scheduling)
+
+### Notes
+- Profile bez workera = lazy/pending (job czeka w queue). Phase 6 doda proper readiness gate (503).
+- RichEventDynamics ODROCZONE do Phase 5 (rich domain events).
+
+### Tagged
+- `v3.0-profile-driven`
+
 ## [2.0.0] — 2026-04-18
 
 ### Phase 2 — BullMQ distributed workers

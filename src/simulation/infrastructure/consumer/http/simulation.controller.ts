@@ -59,6 +59,7 @@ export class SimulationController {
     const result = await this.orchestrator.startSimulation({
       name: body.name,
       ownershipToken,
+      profileId: body.profile,
     });
     return {
       simulationId: result.simulationId,

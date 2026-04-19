@@ -11,13 +11,7 @@ import type { DomainEvent } from '@simulation/domain/events/domain-event';
 import { GoalScored } from '@simulation/domain/events/goal-scored';
 import { SimulationFinished } from '@simulation/domain/events/simulation-finished';
 
-const CONFIG = {
-  durationMs: 9000,
-  goalIntervalMs: 1000,
-  goalCount: 9,
-  firstGoalOffsetMs: 1000,
-  startCooldownMs: 5000,
-};
+const DYNAMICS_CONFIG = { goalCount: 9, goalIntervalMs: 1000, firstGoalOffsetMs: 1000 };
 
 function makeSim(): Simulation {
   const sim = Simulation.create({
@@ -56,7 +50,7 @@ async function tickTo(clock: FakeClock, targetMs: number): Promise<void> {
 describe('TickingSimulationEngine', () => {
   it('runs dynamics to completion, emits 9 GoalScored + 1 SimulationFinished (auto)', async () => {
     const clock = new FakeClock(new Date(0));
-    const dyn = new UniformRandomGoalDynamics(new SeededRandomProvider(42), CONFIG);
+    const dyn = new UniformRandomGoalDynamics(new SeededRandomProvider(42), DYNAMICS_CONFIG);
     const engine = new TickingSimulationEngine(clock, dyn);
     const sim = makeSim();
     const emitted: DomainEvent[] = [];
@@ -86,7 +80,7 @@ describe('TickingSimulationEngine', () => {
 
   it('emitted GoalScored events carry post-increment totalGoals (1, 2, ..., 9)', async () => {
     const clock = new FakeClock(new Date(0));
-    const dyn = new UniformRandomGoalDynamics(new SeededRandomProvider(42), CONFIG);
+    const dyn = new UniformRandomGoalDynamics(new SeededRandomProvider(42), DYNAMICS_CONFIG);
     const engine = new TickingSimulationEngine(clock, dyn);
     const sim = makeSim();
     const goals: number[] = [];
@@ -106,7 +100,7 @@ describe('TickingSimulationEngine', () => {
 
   it('aborts cleanly when signal fires mid-run (no finish emitted)', async () => {
     const clock = new FakeClock(new Date(0));
-    const dyn = new UniformRandomGoalDynamics(new SeededRandomProvider(42), CONFIG);
+    const dyn = new UniformRandomGoalDynamics(new SeededRandomProvider(42), DYNAMICS_CONFIG);
     const engine = new TickingSimulationEngine(clock, dyn);
     const sim = makeSim();
     const emitted: DomainEvent[] = [];
@@ -134,7 +128,7 @@ describe('TickingSimulationEngine', () => {
 
   it('does not run at all if aborted before start', async () => {
     const clock = new FakeClock(new Date(0));
-    const dyn = new UniformRandomGoalDynamics(new SeededRandomProvider(42), CONFIG);
+    const dyn = new UniformRandomGoalDynamics(new SeededRandomProvider(42), DYNAMICS_CONFIG);
     const engine = new TickingSimulationEngine(clock, dyn);
     const sim = makeSim();
     const emitted: DomainEvent[] = [];

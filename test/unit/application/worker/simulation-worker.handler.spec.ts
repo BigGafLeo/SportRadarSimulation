@@ -18,13 +18,7 @@ import { SIMULATION_TOPICS } from '@simulation/application/commands/simulation-t
 import type { DomainEvent } from '@simulation/domain/events/domain-event';
 import { SimulationFinished } from '@simulation/domain/events/simulation-finished';
 
-const CONFIG = {
-  durationMs: 9000,
-  goalIntervalMs: 1000,
-  goalCount: 9,
-  firstGoalOffsetMs: 1000,
-  startCooldownMs: 5000,
-};
+const DYNAMICS_CONFIG = { goalCount: 9, goalIntervalMs: 1000, firstGoalOffsetMs: 1000 };
 
 async function tickTo(clock: FakeClock, totalMs: number): Promise<void> {
   for (let elapsed = 0; elapsed < totalMs; elapsed += 1) {
@@ -60,7 +54,7 @@ describe('SimulationWorkerHandler', () => {
     const publisher = new InMemoryEventPublisher(eventBus);
     const engine = new TickingSimulationEngine(
       clock,
-      new UniformRandomGoalDynamics(new SeededRandomProvider(42), CONFIG),
+      new UniformRandomGoalDynamics(new SeededRandomProvider(42), DYNAMICS_CONFIG),
     );
     const handler = new SimulationWorkerHandler({
       simulationRepository: simRepo,
@@ -106,7 +100,7 @@ describe('SimulationWorkerHandler', () => {
     const publisher = new InMemoryEventPublisher(eventBus);
     const engine = new TickingSimulationEngine(
       clock,
-      new UniformRandomGoalDynamics(new SeededRandomProvider(42), CONFIG),
+      new UniformRandomGoalDynamics(new SeededRandomProvider(42), DYNAMICS_CONFIG),
     );
     const handler = new SimulationWorkerHandler({
       simulationRepository: simRepo,
@@ -155,7 +149,7 @@ describe('SimulationWorkerHandler', () => {
     const publisher = new InMemoryEventPublisher(new InMemoryEventBus());
     const engine = new TickingSimulationEngine(
       clock,
-      new UniformRandomGoalDynamics(new SeededRandomProvider(42), CONFIG),
+      new UniformRandomGoalDynamics(new SeededRandomProvider(42), DYNAMICS_CONFIG),
     );
     const handler = new SimulationWorkerHandler({
       simulationRepository: simRepo,
@@ -183,7 +177,7 @@ describe('SimulationWorkerHandler', () => {
     const publisher = new InMemoryEventPublisher(eventBus);
     const engine = new TickingSimulationEngine(
       clock,
-      new UniformRandomGoalDynamics(new SeededRandomProvider(42), CONFIG),
+      new UniformRandomGoalDynamics(new SeededRandomProvider(42), DYNAMICS_CONFIG),
     );
     const handler = new SimulationWorkerHandler({
       simulationRepository: simRepo,
