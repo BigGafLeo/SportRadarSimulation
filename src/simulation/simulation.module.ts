@@ -4,17 +4,20 @@ import { ConfigService } from '@nestjs/config';
 import type { AppConfig } from '@shared/config/config.schema';
 import { PORT_TOKENS } from '@simulation/domain/ports/tokens';
 import { OwnershipModule } from '@ownership/ownership.module';
-import { SystemClock } from '@simulation/infrastructure/time/system-clock';
 import { CryptoRandomProvider } from '@simulation/infrastructure/random/crypto-random-provider';
 import { InMemorySimulationRepository } from '@simulation/infrastructure/persistence/in-memory-simulation.repository';
 import { UuidOwnershipTokenGenerator } from '@ownership/infrastructure/uuid-ownership-token.generator';
-import { UniformRandomGoalDynamics } from '@simulation/infrastructure/dynamics/uniform-random-goal-dynamics';
 import { TickingSimulationEngine } from '@simulation/infrastructure/engine/ticking-simulation-engine';
+import {
+  getProfile,
+  DEFAULT_PROFILE_ID,
+} from '@simulation/infrastructure/profiles/profile-registry';
 import { FiveSecondCooldownPolicy } from '@simulation/infrastructure/policies/five-second-cooldown.policy';
 import { TtlRetentionPolicy } from '@simulation/infrastructure/policies/ttl-retention.policy';
 import { InMemoryCommandBus } from '@shared/messaging/in-memory-command-bus';
 import { InMemoryEventBus } from '@shared/messaging/in-memory-event-bus';
 import { InMemoryEventPublisher } from '@shared/messaging/in-memory-event-publisher';
+import { shutdownIfPossible } from '@shared/messaging/shutdown.util';
 import { SimulationOrchestrator } from '@simulation/application/orchestrator/simulation-orchestrator';
 import { SimulationWorkerHandler } from '@simulation/application/worker/simulation-worker.handler';
 import { SimulationController } from '@simulation/infrastructure/consumer/http/simulation.controller';
@@ -33,28 +36,22 @@ import type { OwnershipRepository } from '@ownership/domain/ports/ownership-repo
 import type { OwnershipTokenGenerator } from '@ownership/domain/ports/ownership-token-generator.port';
 import type { ThrottlePolicy } from '@simulation/domain/ports/throttle-policy.port';
 
-const DEFAULT_PROFILE_ID = 'default';
-
 interface GatewayWithServer {
   server: { to(room: string): { emit(event: string, payload: unknown): void } };
-}
-
-async function shutdownIfPossible(bus: unknown): Promise<void> {
-  if (
-    bus &&
-    typeof bus === 'object' &&
-    'shutdown' in bus &&
-    typeof (bus as { shutdown?: unknown }).shutdown === 'function'
-  ) {
-    await (bus as { shutdown: () => Promise<void> }).shutdown();
-  }
 }
 
 @Module({
   imports: [OwnershipModule],
   controllers: [SimulationController],
   providers: [
-    { provide: PORT_TOKENS.CLOCK, useClass: SystemClock },
+    {
+      provide: PORT_TOKENS.CLOCK,
+      useFactory: (config: ConfigService<AppConfig, true>) => {
+        const profileId = config.get('SIMULATION_PROFILE', { infer: true });
+        return getProfile(profileId).clockFactory();
+      },
+      inject: [ConfigService],
+    },
     { provide: PORT_TOKENS.RANDOM_PROVIDER, useClass: CryptoRandomProvider },
     {
       provide: PORT_TOKENS.OWNERSHIP_TOKEN_GENERATOR,
@@ -109,12 +106,10 @@ async function shutdownIfPossible(bus: unknown): Promise<void> {
     },
     {
       provide: PORT_TOKENS.MATCH_DYNAMICS,
-      useFactory: (random: RandomProvider, config: ConfigService<AppConfig, true>) =>
-        new UniformRandomGoalDynamics(random, {
-          goalCount: config.get('GOAL_COUNT', { infer: true }),
-          goalIntervalMs: config.get('GOAL_INTERVAL_MS', { infer: true }),
-          firstGoalOffsetMs: config.get('FIRST_GOAL_OFFSET_MS', { infer: true }),
-        }),
+      useFactory: (random: RandomProvider, config: ConfigService<AppConfig, true>) => {
+        const profileId = config.get('SIMULATION_PROFILE', { infer: true });
+        return getProfile(profileId).dynamicsFactory({ random });
+      },
       inject: [PORT_TOKENS.RANDOM_PROVIDER, ConfigService],
     },
     {
@@ -177,6 +172,7 @@ async function shutdownIfPossible(bus: unknown): Promise<void> {
         publisher: EventPublisher,
         engine: SimulationEngine,
         clock: Clock,
+        config: ConfigService<AppConfig, true>,
       ) =>
         new SimulationWorkerHandler({
           simulationRepository: simRepo,
@@ -184,7 +180,7 @@ async function shutdownIfPossible(bus: unknown): Promise<void> {
           eventPublisher: publisher,
           engine,
           clock,
-          profileId: DEFAULT_PROFILE_ID,
+          profileId: config.get('SIMULATION_PROFILE', { infer: true }),
         }),
       inject: [
         PORT_TOKENS.SIMULATION_REPOSITORY,
@@ -192,6 +188,7 @@ async function shutdownIfPossible(bus: unknown): Promise<void> {
         PORT_TOKENS.EVENT_PUBLISHER,
         PORT_TOKENS.SIMULATION_ENGINE,
         PORT_TOKENS.CLOCK,
+        ConfigService,
       ],
     },
     SimulationGateway,

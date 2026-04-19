@@ -1,8 +1,13 @@
 import type { RandomProvider } from '@simulation/domain/ports/random-provider.port';
 
+// Numerical Recipes LCG parameters — deterministic 32-bit pseudo-random sequence.
+const LCG_MULTIPLIER = 1664525;
+const LCG_INCREMENT = 1013904223;
+const UINT32_MOD = 0x1_0000_0000;
+
 /**
- * Linear Congruential Generator (Numerical Recipes parameters).
- * Not cryptographically secure; suitable for deterministic tests only.
+ * Linear Congruential Generator. Not cryptographically secure;
+ * suitable for deterministic tests only.
  */
 export class SeededRandomProvider implements RandomProvider {
   private state: number;
@@ -12,14 +17,14 @@ export class SeededRandomProvider implements RandomProvider {
   }
 
   int(min: number, max: number): number {
-    this.state = (Math.imul(this.state, 1664525) + 1013904223) >>> 0;
+    this.step();
     const range = max - min + 1;
     return min + (this.state % range);
   }
 
   float(): number {
-    this.state = (Math.imul(this.state, 1664525) + 1013904223) >>> 0;
-    return this.state / 0x1_0000_0000;
+    this.step();
+    return this.state / UINT32_MOD;
   }
 
   uuid(): string {
@@ -33,17 +38,21 @@ export class SeededRandomProvider implements RandomProvider {
     return parts.join('-');
   }
 
+  private step(): void {
+    this.state = (Math.imul(this.state, LCG_MULTIPLIER) + LCG_INCREMENT) >>> 0;
+  }
+
   private nextHex(digits: number): string {
     let out = '';
     while (out.length < digits) {
-      this.state = (Math.imul(this.state, 1664525) + 1013904223) >>> 0;
+      this.step();
       out += this.state.toString(16).padStart(8, '0');
     }
     return out.slice(0, digits);
   }
 
   private variantNibble(): string {
-    this.state = (Math.imul(this.state, 1664525) + 1013904223) >>> 0;
+    this.step();
     const variantBits = 0x8 | (this.state & 0x3);
     return variantBits.toString(16);
   }

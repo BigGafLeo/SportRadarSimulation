@@ -14,17 +14,7 @@ import type { EventPublisher } from '@simulation/domain/ports/event-publisher.po
 import type { SimulationEngine } from '@simulation/domain/ports/simulation-engine.port';
 import type { CommandBus } from '@shared/messaging/command-bus.port';
 import type { EventBus } from '@shared/messaging/event-bus.port';
-
-async function shutdownIfPossible(bus: unknown): Promise<void> {
-  if (
-    bus &&
-    typeof bus === 'object' &&
-    'shutdown' in bus &&
-    typeof (bus as { shutdown?: unknown }).shutdown === 'function'
-  ) {
-    await (bus as { shutdown: () => Promise<void> }).shutdown();
-  }
-}
+import { shutdownIfPossible } from '@shared/messaging/shutdown.util';
 
 @Module({
   providers: [

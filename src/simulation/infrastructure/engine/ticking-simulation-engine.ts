@@ -28,10 +28,16 @@ export class TickingSimulationEngine implements SimulationEngine {
     emit: (event: DomainEvent) => Promise<void>,
     signal: AbortSignal,
   ): Promise<void> {
-    if (signal.aborted) return;
+    if (signal.aborted) {
+      this.dynamics.onAbort?.(simulation.id.value);
+      return;
+    }
 
     for (let tick = 0; ; tick++) {
-      if (signal.aborted) return;
+      if (signal.aborted) {
+        this.dynamics.onAbort?.(simulation.id.value);
+        return;
+      }
 
       const step = await this.dynamics.nextStep(simulation, tick);
       if (!step) break;
@@ -39,9 +45,13 @@ export class TickingSimulationEngine implements SimulationEngine {
       try {
         await this.clock.sleep(step.delayMs, signal);
       } catch {
+        this.dynamics.onAbort?.(simulation.id.value);
         return;
       }
-      if (signal.aborted) return;
+      if (signal.aborted) {
+        this.dynamics.onAbort?.(simulation.id.value);
+        return;
+      }
 
       const now = this.clock.now();
       this.dispatchIntent(simulation, step.event, now);
@@ -50,7 +60,10 @@ export class TickingSimulationEngine implements SimulationEngine {
       }
     }
 
-    if (signal.aborted) return;
+    if (signal.aborted) {
+      this.dynamics.onAbort?.(simulation.id.value);
+      return;
+    }
     simulation.finish('auto', this.clock.now());
     for (const evt of simulation.pullEvents()) {
       await emit(evt);

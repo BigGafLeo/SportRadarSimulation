@@ -2,7 +2,7 @@ import type { MatchDynamics, TimedEvent } from '@simulation/domain/ports/match-d
 import type { RandomProvider } from '@simulation/domain/ports/random-provider.port';
 import type { Simulation } from '@simulation/domain/aggregates/simulation';
 import { GoalScored } from '@simulation/domain/events/goal-scored';
-import { PRESET_TEAMS } from '@simulation/domain/value-objects/matches-preset';
+import { pickRandomTeam } from './team-picker';
 
 export interface UniformDynamicsConfig {
   readonly goalCount: number;
@@ -22,8 +22,7 @@ export class UniformRandomGoalDynamics implements MatchDynamics {
 
   async nextStep(simulation: Simulation, tickIndex: number): Promise<TimedEvent | undefined> {
     if (tickIndex >= this.config.goalCount) return undefined;
-    const teamIndex = this.random.int(0, PRESET_TEAMS.length - 1);
-    const team = PRESET_TEAMS[teamIndex];
+    const team = pickRandomTeam(this.random);
     const delayMs = tickIndex === 0 ? this.config.firstGoalOffsetMs : this.config.goalIntervalMs;
     const intent = new GoalScored(simulation.id, team.id, [], 0, new Date(0));
     return { delayMs, event: intent };
