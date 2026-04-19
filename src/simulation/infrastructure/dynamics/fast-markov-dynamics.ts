@@ -3,7 +3,7 @@ import type { RandomProvider } from '@simulation/domain/ports/random-provider.po
 import type { Simulation } from '@simulation/domain/aggregates/simulation';
 import type { CoreSimulationConfig } from '@simulation/domain/core-simulation-config';
 import { GoalScored } from '@simulation/domain/events/goal-scored';
-import { PRESET_TEAMS } from '@simulation/domain/value-objects/matches-preset';
+import { pickRandomTeam } from './team-picker';
 
 export interface MarkovDynamicsConfig {
   /** Virtual ms between Markov transitions. */
@@ -27,6 +27,8 @@ const TRANSITIONS: Record<State, readonly Transition[]> = {
     { to: 'SHOT', p: 0.4 },
     { to: 'MIDFIELD', p: 0.6 },
   ],
+  // shot→goal probability ~14% — matches "shots-on-target conversion rate"
+  // statistic from FBref/Opta for top-5 European leagues.
   SHOT: [
     { to: 'GOAL', p: 0.14 },
     { to: 'DEFENSIVE_BLOCK', p: 0.5 },
@@ -83,7 +85,7 @@ export class FastMarkovDynamics implements MatchDynamics {
       st.current = next;
       st.elapsedMs += this.config.stepMs;
       if (next === 'GOAL') {
-        const team = PRESET_TEAMS[this.random.int(0, PRESET_TEAMS.length - 1)];
+        const team = pickRandomTeam(this.random);
         const intent = new GoalScored(simulation.id, team.id, [], 0, new Date(0));
         return { delayMs: this.config.stepMs, event: intent };
       }
@@ -91,6 +93,11 @@ export class FastMarkovDynamics implements MatchDynamics {
 
     this.state.delete(id);
     return undefined;
+  }
+
+  /** Engine hook — drops per-simulation state when a run is aborted. */
+  onAbort(simulationId: string): void {
+    this.state.delete(simulationId);
   }
 
   /** Visible for tests — verifies cleanup discipline. */
