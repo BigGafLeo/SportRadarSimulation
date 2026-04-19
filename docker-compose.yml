@@ -1,5 +1,5 @@
 # Phase 2 — distributed mode with Redis + worker replicas.
-# Phase 4 will add: postgres.
+# Phase 4 — adds postgres with named volume; PERSISTENCE_MODE=postgres on all app services.
 
 services:
   redis:
@@ -13,6 +13,23 @@ services:
       timeout: 3s
       retries: 5
 
+  postgres:
+    image: postgres:16-alpine
+    container_name: sportradar-postgres
+    environment:
+      POSTGRES_DB: sportradar
+      POSTGRES_USER: sportradar
+      POSTGRES_PASSWORD: sportradar
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U sportradar -d sportradar']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   orchestrator:
     build:
       context: .
@@ -22,6 +39,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
     ports:
       - '3000:3000'
     environment:
@@ -29,8 +48,9 @@ services:
       NODE_ENV: development
       APP_MODE: orchestrator
       TRANSPORT_MODE: bullmq
-      PERSISTENCE_MODE: redis
+      PERSISTENCE_MODE: postgres
       REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://sportradar:sportradar@postgres:5432/sportradar
       BULL_BOARD_ENABLED: 'true'
     restart: unless-stopped
 
@@ -42,14 +62,17 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
       orchestrator:
         condition: service_started
     environment:
       NODE_ENV: development
       APP_MODE: worker
       TRANSPORT_MODE: bullmq
-      PERSISTENCE_MODE: redis
+      PERSISTENCE_MODE: postgres
       REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://sportradar:sportradar@postgres:5432/sportradar
       SIMULATION_PROFILE: uniform-realtime
     deploy:
       replicas: 2
@@ -63,14 +86,17 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
       orchestrator:
         condition: service_started
     environment:
       NODE_ENV: development
       APP_MODE: worker
       TRANSPORT_MODE: bullmq
-      PERSISTENCE_MODE: redis
+      PERSISTENCE_MODE: postgres
       REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://sportradar:sportradar@postgres:5432/sportradar
       SIMULATION_PROFILE: poisson-accelerated
     deploy:
       replicas: 1
@@ -84,15 +110,21 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
       orchestrator:
         condition: service_started
     environment:
       NODE_ENV: development
       APP_MODE: worker
       TRANSPORT_MODE: bullmq
-      PERSISTENCE_MODE: redis
+      PERSISTENCE_MODE: postgres
       REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://sportradar:sportradar@postgres:5432/sportradar
       SIMULATION_PROFILE: fast-markov
     deploy:
       replicas: 1
     restart: unless-stopped
+
+volumes:
+  postgres-data:
