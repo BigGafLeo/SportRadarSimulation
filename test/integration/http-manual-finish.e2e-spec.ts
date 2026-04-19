@@ -13,6 +13,14 @@ async function tickTo(clock: FakeClock, totalMs: number): Promise<void> {
   for (let i = 0; i < totalMs; i += 1) await clock.advance(1);
 }
 
+async function registerAndGetToken(app: INestApplication, email: string): Promise<string> {
+  const res = await request(app.getHttpServer())
+    .post('/auth/register')
+    .send({ email, password: 'TestPass123!' })
+    .expect(201);
+  return res.body.accessToken;
+}
+
 describe('HTTP manual finish mid-simulation', () => {
   let app: INestApplication;
   let clock: FakeClock;
@@ -38,16 +46,18 @@ describe('HTTP manual finish mid-simulation', () => {
   });
 
   it('finish before 9s elapses → state FINISHED with reason=manual, fewer goals', async () => {
+    const token = await registerAndGetToken(app, 'manual-finish@example.com');
     const created = await request(app.getHttpServer())
       .post('/simulations')
+      .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Katar 2023' })
       .expect(201);
-    const { simulationId, ownershipToken } = created.body;
+    const { simulationId } = created.body;
 
     await tickTo(clock, 3000);
     await request(app.getHttpServer())
       .post(`/simulations/${simulationId}/finish`)
-      .set('x-simulation-token', ownershipToken)
+      .set('Authorization', `Bearer ${token}`)
       .expect(202);
     await worker.drainInFlight();
 
@@ -58,9 +68,11 @@ describe('HTTP manual finish mid-simulation', () => {
     expect(final.body.totalGoals).toBeLessThan(9);
   });
 
-  it('finish without token → 401 UNAUTHORIZED', async () => {
+  it('finish without Bearer → 401 UNAUTHORIZED', async () => {
+    const token = await registerAndGetToken(app, 'finish-noauth@example.com');
     const created = await request(app.getHttpServer())
       .post('/simulations')
+      .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Katar 2023' })
       .expect(201);
     await request(app.getHttpServer())
@@ -68,27 +80,31 @@ describe('HTTP manual finish mid-simulation', () => {
       .expect(401);
   });
 
-  it('finish with unknown token → 401 UNAUTHORIZED', async () => {
+  it('finish with different user → 403 FORBIDDEN', async () => {
+    const token1 = await registerAndGetToken(app, 'finish-owner@example.com');
+    const token2 = await registerAndGetToken(app, 'finish-other@example.com');
     const created = await request(app.getHttpServer())
       .post('/simulations')
+      .set('Authorization', `Bearer ${token1}`)
       .send({ name: 'Katar 2023' })
       .expect(201);
-    const bogus = '550e8400-e29b-41d4-a716-999999999999';
     await request(app.getHttpServer())
       .post(`/simulations/${created.body.simulationId}/finish`)
-      .set('x-simulation-token', bogus)
-      .expect(401);
+      .set('Authorization', `Bearer ${token2}`)
+      .expect(403);
   });
 
   it('finish on unknown simulationId → 404 NOT_FOUND', async () => {
     const unknown = '550e8400-e29b-41d4-a716-111111111111';
-    const created = await request(app.getHttpServer())
+    const token = await registerAndGetToken(app, 'finish-404@example.com');
+    await request(app.getHttpServer())
       .post('/simulations')
+      .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Katar 2023' })
       .expect(201);
     await request(app.getHttpServer())
       .post(`/simulations/${unknown}/finish`)
-      .set('x-simulation-token', created.body.ownershipToken)
+      .set('Authorization', `Bearer ${token}`)
       .expect(404);
   });
 });

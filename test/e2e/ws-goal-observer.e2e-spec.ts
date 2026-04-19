@@ -15,6 +15,14 @@ async function tickTo(clock: FakeClock, totalMs: number): Promise<void> {
   for (let i = 0; i < totalMs; i += 1) await clock.advance(1);
 }
 
+async function registerAndGetToken(app: INestApplication, email: string): Promise<string> {
+  const res = await request(app.getHttpServer())
+    .post('/auth/register')
+    .send({ email, password: 'TestPass123!' })
+    .expect(201);
+  return res.body.accessToken;
+}
+
 describe('E2E WebSocket — observer receives goal events', () => {
   let app: INestApplication;
   let clock: FakeClock;
@@ -44,8 +52,10 @@ describe('E2E WebSocket — observer receives goal events', () => {
   });
 
   it('subscribes to simulation and receives 9 goal-scored events + simulation-finished', async () => {
+    const token = await registerAndGetToken(app, 'ws-observer@example.com');
     const created = await request(app.getHttpServer())
       .post('/simulations')
+      .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Katar 2023' })
       .expect(201);
     const simId = created.body.simulationId;
