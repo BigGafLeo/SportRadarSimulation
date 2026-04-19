@@ -4,6 +4,7 @@ import type { Match } from '@simulation/domain/value-objects/match';
 import { Simulation } from '@simulation/domain/aggregates/simulation';
 import type { SimulationId } from '@simulation/domain/value-objects/simulation-id';
 
+// ADR-006 (full swap to Postgres), ADR-007 (hybrid schema: queryable columns + JSONB score_snapshot)
 export class PostgresSimulationRepository implements SimulationRepository {
   constructor(
     private readonly prisma: PrismaClient,

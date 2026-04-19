@@ -124,6 +124,53 @@ describe('PostgresSimulationRepository (Testcontainers)', () => {
     expect(ownedByA[0].id.value).toBe(simA.id.value);
   });
 
+  it('findLastStartedAtByOwner returns null when no simulations for owner', async () => {
+    const result = await repo.findLastStartedAtByOwner('550e8400-e29b-41d4-a716-446655440099');
+    expect(result).toBeNull();
+  });
+
+  it('findLastStartedAtByOwner returns latest startedAt across owner simulations', async () => {
+    const ownerId = '550e8400-e29b-41d4-a716-446655440010';
+    const t1 = new Date('2026-04-19T10:00:00Z');
+    const t2 = new Date('2026-04-19T11:00:00Z');
+    const sim1 = Simulation.create({
+      id: SimulationId.create('aaaaaaaa-bbbb-4ccc-8ddd-000000000001'),
+      ownerId,
+      name: SimulationName.create('Earlier Sim'),
+      matches: PRESET_MATCHES,
+      profileId: 'uniform-realtime',
+      now: t1,
+    });
+    const sim2 = Simulation.create({
+      id: SimulationId.create('aaaaaaaa-bbbb-4ccc-8ddd-000000000002'),
+      ownerId,
+      name: SimulationName.create('Later Sim'),
+      matches: PRESET_MATCHES,
+      profileId: 'uniform-realtime',
+      now: t2,
+    });
+    await repo.save(sim1);
+    await repo.save(sim2);
+    const last = await repo.findLastStartedAtByOwner(ownerId);
+    expect(last).toEqual(t2);
+  });
+
+  it('findLastStartedAtByOwner is scoped per owner', async () => {
+    const ownerA = '550e8400-e29b-41d4-a716-446655440010';
+    const ownerB = '550e8400-e29b-41d4-a716-446655440011';
+    const simA = Simulation.create({
+      id: SimulationId.create('aaaaaaaa-bbbb-4ccc-8ddd-000000000003'),
+      ownerId: ownerA,
+      name: SimulationName.create('Owner A Sim'),
+      matches: PRESET_MATCHES,
+      profileId: 'uniform-realtime',
+      now: new Date('2026-04-19T12:00:00Z'),
+    });
+    await repo.save(simA);
+    const lastForB = await repo.findLastStartedAtByOwner(ownerB);
+    expect(lastForB).toBeNull();
+  });
+
   it('delete removes the row, no-op for unknown id', async () => {
     const sim = makeSim('d');
     await repo.save(sim);
