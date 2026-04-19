@@ -11,8 +11,12 @@ export const ConfigSchema = z.object({
 
   // Phase 2+ — Redis + transport selection
   REDIS_URL: z.string().url().default('redis://localhost:6379'),
+  DATABASE_URL: z
+    .string()
+    .url()
+    .default('postgresql://sportradar:sportradar@localhost:5432/sportradar'),
   TRANSPORT_MODE: z.enum(['inmemory', 'bullmq']).default('inmemory'),
-  PERSISTENCE_MODE: z.enum(['inmemory', 'redis']).default('inmemory'),
+  PERSISTENCE_MODE: z.enum(['inmemory', 'postgres']).default('inmemory'),
   APP_MODE: z.enum(['orchestrator', 'worker']).default('orchestrator'),
   BULL_BOARD_ENABLED: z.coerce.boolean().default(true),
 
