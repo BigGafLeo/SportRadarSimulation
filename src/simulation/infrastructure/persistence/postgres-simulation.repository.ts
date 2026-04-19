@@ -62,8 +62,11 @@ export class PostgresSimulationRepository implements SimulationRepository {
   async delete(id: SimulationId): Promise<void> {
     try {
       await this.prisma.simulation.delete({ where: { id: id.value } });
-    } catch {
-      // Idempotent: missing row is a no-op (matches InMemory impl)
+    } catch (err: unknown) {
+      if (err != null && typeof err === 'object' && 'code' in err && err.code === 'P2025') {
+        return;
+      }
+      throw err;
     }
   }
 
