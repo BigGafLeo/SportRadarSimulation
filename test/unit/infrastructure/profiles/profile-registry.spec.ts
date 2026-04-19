@@ -70,7 +70,10 @@ describe('Profile registry', () => {
     for (const id of PROFILE_IDS) {
       // Will throw later when SIMULATION_PROFILE is added; for now just import path verifies structure.
       // Skip if SIMULATION_PROFILE not yet in schema.
-      const result = ConfigSchema.safeParse({ SIMULATION_PROFILE: id });
+      const result = ConfigSchema.safeParse({
+        JWT_SECRET: 'test-secret-minimum-32-characters-long-for-hmac',
+        SIMULATION_PROFILE: id,
+      });
       // Allow either: schema accepts (Phase 3 done) OR schema doesn't have field yet (passes by ignoring extra)
       expect(result.success || !('SIMULATION_PROFILE' in result.data!)).toBe(true);
     }

@@ -1,7 +1,13 @@
 import { Email } from '@auth/domain/value-objects/email';
+import { HashedPassword } from '@auth/domain/value-objects/hashed-password';
 import { InvalidCredentialsError } from '@auth/domain/errors/invalid-credentials.error';
 import type { UserRepository } from '@auth/domain/ports/user-repository.port';
 import type { PasswordHasher } from '@auth/domain/ports/password-hasher.port';
+
+// Dummy hash used when email is not found to prevent timing side-channel
+const DUMMY_HASH = HashedPassword.fromHash(
+  '$argon2id$v=19$m=65536,t=3,p=4$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+);
 
 export interface LoginInput {
   readonly email: string;
@@ -23,12 +29,11 @@ export class LoginUseCase {
   async execute(input: LoginInput): Promise<LoginResult> {
     const email = Email.create(input.email);
     const user = await this.userRepository.findByEmail(email);
-    if (!user) {
-      throw new InvalidCredentialsError();
-    }
 
-    const valid = await this.passwordHasher.verify(input.password, user.passwordHash);
-    if (!valid) {
+    const hashToVerify = user?.passwordHash ?? DUMMY_HASH;
+    const valid = await this.passwordHasher.verify(input.password, hashToVerify);
+
+    if (!user || !valid) {
       throw new InvalidCredentialsError();
     }
 

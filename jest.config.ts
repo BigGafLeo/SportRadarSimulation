@@ -2,6 +2,8 @@ import type { Config } from 'jest';
 import { pathsToModuleNameMapper } from 'ts-jest';
 import { compilerOptions } from './tsconfig.json';
 
+process.env.JWT_SECRET ??= 'test-secret-minimum-32-characters-long-for-hmac';
+
 const config: Config = {
   preset: 'ts-jest',
   testEnvironment: 'node',

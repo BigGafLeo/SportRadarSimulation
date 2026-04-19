@@ -26,9 +26,8 @@ export const ConfigSchema = z.object({
     .default('uniform-realtime'),
 
   // Phase 4+ — auth
-  JWT_SECRET: z.string().min(32).default('dev-secret-minimum-32-characters-long-for-hmac'),
+  JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.coerce.number().int().positive().default(900),
-  PASSWORD_MIN_LENGTH: z.coerce.number().int().positive().default(8),
 });
 
 export type AppConfig = z.infer<typeof ConfigSchema>;
