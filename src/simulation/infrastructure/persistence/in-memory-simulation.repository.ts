@@ -1,7 +1,6 @@
 import type { Simulation } from '@simulation/domain/aggregates/simulation';
 import type { SimulationRepository } from '@simulation/domain/ports/simulation-repository.port';
 import type { SimulationId } from '@simulation/domain/value-objects/simulation-id';
-import type { OwnershipToken } from '@ownership/domain/value-objects/ownership-token';
 
 export class InMemorySimulationRepository implements SimulationRepository {
   private readonly store = new Map<string, Simulation>();
@@ -18,8 +17,15 @@ export class InMemorySimulationRepository implements SimulationRepository {
     return Array.from(this.store.values());
   }
 
-  async findByOwner(token: OwnershipToken): Promise<readonly Simulation[]> {
-    return Array.from(this.store.values()).filter((s) => s.ownerToken.equals(token));
+  async findByOwner(ownerId: string): Promise<readonly Simulation[]> {
+    return Array.from(this.store.values()).filter((s) => s.ownerId === ownerId);
+  }
+
+  async findLastStartedAtByOwner(ownerId: string): Promise<Date | null> {
+    const sims = await this.findByOwner(ownerId);
+    if (sims.length === 0) return null;
+    const dates = sims.map((s) => s.toSnapshot().startedAt.getTime());
+    return new Date(Math.max(...dates));
   }
 
   async delete(id: SimulationId): Promise<void> {

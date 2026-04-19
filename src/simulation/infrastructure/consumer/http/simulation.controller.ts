@@ -2,19 +2,19 @@ import {
   Body,
   Controller,
   Get,
-  Headers,
   HttpCode,
   HttpStatus,
   Param,
   Post,
-  UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { SimulationOrchestrator } from '@simulation/application/orchestrator/simulation-orchestrator';
 import { SimulationId } from '@simulation/domain/value-objects/simulation-id';
-import { OwnershipToken } from '@ownership/domain/value-objects/ownership-token';
+import { JwtAuthGuard } from '@auth/infrastructure/security/jwt-auth.guard';
+import { CurrentUser } from '@auth/infrastructure/security/current-user.decorator';
 import { CreateSimulationRequestDto } from './dto/create-simulation.request';
 import type { SimulationSnapshot } from '@simulation/domain/aggregates/simulation';
-import { SIMULATION_TOKEN_HEADER } from './simulation-token.header';
+import type { AuthenticatedUser } from '@shared/auth/authenticated-user';
 
 interface SimulationResponseShape {
   id: string;
@@ -40,6 +40,7 @@ function toResponse(snap: SimulationSnapshot): SimulationResponseShape {
   };
 }
 
+@UseGuards(JwtAuthGuard)
 @Controller('simulations')
 export class SimulationController {
   constructor(private readonly orchestrator: SimulationOrchestrator) {}
@@ -48,22 +49,19 @@ export class SimulationController {
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() body: CreateSimulationRequestDto,
-    @Headers(SIMULATION_TOKEN_HEADER) token?: string,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<{
     simulationId: string;
-    ownershipToken: string;
     state: 'RUNNING';
     initialSnapshot: SimulationResponseShape;
   }> {
-    const ownershipToken = token ? OwnershipToken.create(token) : undefined;
     const result = await this.orchestrator.startSimulation({
+      userId: user.id,
       name: body.name,
-      ownershipToken,
       profileId: body.profile,
     });
     return {
       simulationId: result.simulationId,
-      ownershipToken: result.ownershipToken,
       state: result.state,
       initialSnapshot: toResponse(result.initialSnapshot),
     };
@@ -71,27 +69,19 @@ export class SimulationController {
 
   @Post(':id/finish')
   @HttpCode(HttpStatus.ACCEPTED)
-  async finish(
-    @Param('id') id: string,
-    @Headers(SIMULATION_TOKEN_HEADER) token: string | undefined,
-  ): Promise<void> {
-    if (!token) throw new UnauthorizedException(`Missing ${SIMULATION_TOKEN_HEADER} header`);
+  async finish(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser): Promise<void> {
     await this.orchestrator.finishSimulation({
       simulationId: SimulationId.create(id),
-      ownershipToken: OwnershipToken.create(token),
+      userId: user.id,
     });
   }
 
   @Post(':id/restart')
   @HttpCode(HttpStatus.ACCEPTED)
-  async restart(
-    @Param('id') id: string,
-    @Headers(SIMULATION_TOKEN_HEADER) token: string | undefined,
-  ): Promise<void> {
-    if (!token) throw new UnauthorizedException(`Missing ${SIMULATION_TOKEN_HEADER} header`);
+  async restart(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser): Promise<void> {
     await this.orchestrator.restartSimulation({
       simulationId: SimulationId.create(id),
-      ownershipToken: OwnershipToken.create(token),
+      userId: user.id,
     });
   }
 

@@ -3,10 +3,8 @@ import { Inject, Module, type OnModuleInit, type OnModuleDestroy } from '@nestjs
 import { ConfigService } from '@nestjs/config';
 import type { AppConfig } from '@shared/config/config.schema';
 import { PORT_TOKENS } from '@simulation/domain/ports/tokens';
-import { OwnershipModule } from '@ownership/ownership.module';
 import { CryptoRandomProvider } from '@simulation/infrastructure/random/crypto-random-provider';
 import { createSimulationRepository } from '@simulation/infrastructure/persistence/simulation-repository.factory';
-import { UuidOwnershipTokenGenerator } from '@ownership/infrastructure/uuid-ownership-token.generator';
 import { TickingSimulationEngine } from '@simulation/infrastructure/engine/ticking-simulation-engine';
 import {
   getProfile,
@@ -32,8 +30,6 @@ import type { EventPublisher } from '@simulation/domain/ports/event-publisher.po
 import type { SimulationEngine } from '@simulation/domain/ports/simulation-engine.port';
 import type { CommandBus } from '@shared/messaging/command-bus.port';
 import type { EventBus } from '@shared/messaging/event-bus.port';
-import type { OwnershipRepository } from '@ownership/domain/ports/ownership-repository.port';
-import type { OwnershipTokenGenerator } from '@ownership/domain/ports/ownership-token-generator.port';
 import type { ThrottlePolicy } from '@simulation/domain/ports/throttle-policy.port';
 
 interface GatewayWithServer {
@@ -41,7 +37,6 @@ interface GatewayWithServer {
 }
 
 @Module({
-  imports: [OwnershipModule],
   controllers: [SimulationController],
   providers: [
     {
@@ -53,11 +48,6 @@ interface GatewayWithServer {
       inject: [ConfigService],
     },
     { provide: PORT_TOKENS.RANDOM_PROVIDER, useClass: CryptoRandomProvider },
-    {
-      provide: PORT_TOKENS.OWNERSHIP_TOKEN_GENERATOR,
-      useFactory: (random: RandomProvider) => new UuidOwnershipTokenGenerator(random),
-      inject: [PORT_TOKENS.RANDOM_PROVIDER],
-    },
     {
       provide: PORT_TOKENS.SIMULATION_REPOSITORY,
       useFactory: (config: ConfigService<AppConfig, true>) => createSimulationRepository(config),
@@ -122,8 +112,6 @@ interface GatewayWithServer {
       provide: SimulationOrchestrator,
       useFactory: (
         simRepo: SimulationRepository,
-        ownerRepo: OwnershipRepository,
-        tokenGen: OwnershipTokenGenerator,
         throttle: ThrottlePolicy,
         cmdBus: CommandBus,
         publisher: EventPublisher,
@@ -132,8 +120,6 @@ interface GatewayWithServer {
       ) =>
         new SimulationOrchestrator({
           simulationRepository: simRepo,
-          ownershipRepository: ownerRepo,
-          tokenGenerator: tokenGen,
           throttlePolicy: throttle,
           commandBus: cmdBus,
           eventPublisher: publisher,
@@ -143,8 +129,6 @@ interface GatewayWithServer {
         }),
       inject: [
         PORT_TOKENS.SIMULATION_REPOSITORY,
-        PORT_TOKENS.OWNERSHIP_REPOSITORY,
-        PORT_TOKENS.OWNERSHIP_TOKEN_GENERATOR,
         PORT_TOKENS.THROTTLE_POLICY,
         PORT_TOKENS.COMMAND_BUS,
         PORT_TOKENS.EVENT_PUBLISHER,
