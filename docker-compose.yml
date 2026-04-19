@@ -53,6 +53,8 @@ services:
       REDIS_URL: redis://redis:6379
       DATABASE_URL: postgresql://sportradar:sportradar@postgres:5432/sportradar
       BULL_BOARD_ENABLED: 'true'
+      JWT_SECRET: 'dev-secret-minimum-32-characters-long-for-hmac'
+      JWT_EXPIRES_IN: 900
     restart: unless-stopped
 
   worker-uniform:
@@ -75,6 +77,8 @@ services:
       REDIS_URL: redis://redis:6379
       DATABASE_URL: postgresql://sportradar:sportradar@postgres:5432/sportradar
       SIMULATION_PROFILE: uniform-realtime
+      JWT_SECRET: 'dev-secret-minimum-32-characters-long-for-hmac'
+      JWT_EXPIRES_IN: 900
     deploy:
       replicas: 2
     restart: unless-stopped
@@ -99,6 +103,8 @@ services:
       REDIS_URL: redis://redis:6379
       DATABASE_URL: postgresql://sportradar:sportradar@postgres:5432/sportradar
       SIMULATION_PROFILE: poisson-accelerated
+      JWT_SECRET: 'dev-secret-minimum-32-characters-long-for-hmac'
+      JWT_EXPIRES_IN: 900
     deploy:
       replicas: 1
     restart: unless-stopped
@@ -123,6 +129,8 @@ services:
       REDIS_URL: redis://redis:6379
       DATABASE_URL: postgresql://sportradar:sportradar@postgres:5432/sportradar
       SIMULATION_PROFILE: fast-markov
+      JWT_SECRET: 'dev-secret-minimum-32-characters-long-for-hmac'
+      JWT_EXPIRES_IN: 900
     deploy:
       replicas: 1
     restart: unless-stopped
