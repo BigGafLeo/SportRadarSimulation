@@ -5,7 +5,6 @@ import { PostgresSimulationRepository } from '@simulation/infrastructure/persist
 import { Simulation } from '@simulation/domain/aggregates/simulation';
 import { SimulationId } from '@simulation/domain/value-objects/simulation-id';
 import { SimulationName } from '@simulation/domain/value-objects/simulation-name';
-import { OwnershipToken } from '@ownership/domain/value-objects/ownership-token';
 import { PRESET_MATCHES } from '@simulation/domain/value-objects/matches-preset';
 
 describe('PostgresSimulationRepository (Testcontainers)', () => {
@@ -41,7 +40,7 @@ describe('PostgresSimulationRepository (Testcontainers)', () => {
     const id = `aaaaaaaa-bbbb-4ccc-8ddd-${idSuffix.padStart(12, '0')}`;
     return Simulation.create({
       id: SimulationId.create(id),
-      ownerToken: OwnershipToken.create('550e8400-e29b-41d4-a716-446655440010'),
+      ownerId: '550e8400-e29b-41d4-a716-446655440010',
       name: SimulationName.create('Test Match Name'),
       matches: PRESET_MATCHES,
       profileId: 'uniform-realtime',
@@ -94,7 +93,7 @@ describe('PostgresSimulationRepository (Testcontainers)', () => {
     await new Promise((r) => setTimeout(r, 10));
     const bSim = Simulation.create({
       id: SimulationId.create('aaaaaaaa-bbbb-4ccc-8ddd-bbbbbbbbbbbb'),
-      ownerToken: OwnershipToken.create('550e8400-e29b-41d4-a716-446655440010'),
+      ownerId: '550e8400-e29b-41d4-a716-446655440010',
       name: SimulationName.create('Second Match Name'),
       matches: PRESET_MATCHES,
       profileId: 'uniform-realtime',
@@ -106,13 +105,13 @@ describe('PostgresSimulationRepository (Testcontainers)', () => {
     expect(all[0].id.value).toBe(bSim.id.value); // newer first
   });
 
-  it('findByOwner filters by token', async () => {
-    const tokenA = OwnershipToken.create('550e8400-e29b-41d4-a716-446655440010');
-    const tokenB = OwnershipToken.create('550e8400-e29b-41d4-a716-446655440011');
+  it('findByOwner filters by ownerId', async () => {
+    const ownerIdA = '550e8400-e29b-41d4-a716-446655440010';
+    const ownerIdB = '550e8400-e29b-41d4-a716-446655440011';
     const simA = makeSim('a');
     const simB = Simulation.create({
       id: SimulationId.create('aaaaaaaa-bbbb-4ccc-8ddd-bbbbbbbbbbbb'),
-      ownerToken: tokenB,
+      ownerId: ownerIdB,
       name: SimulationName.create('Other Owner Sim'),
       matches: PRESET_MATCHES,
       profileId: 'uniform-realtime',
@@ -120,7 +119,7 @@ describe('PostgresSimulationRepository (Testcontainers)', () => {
     });
     await repo.save(simA);
     await repo.save(simB);
-    const ownedByA = await repo.findByOwner(tokenA);
+    const ownedByA = await repo.findByOwner(ownerIdA);
     expect(ownedByA).toHaveLength(1);
     expect(ownedByA[0].id.value).toBe(simA.id.value);
   });

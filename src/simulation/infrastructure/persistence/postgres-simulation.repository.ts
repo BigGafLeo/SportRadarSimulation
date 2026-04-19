@@ -3,13 +3,7 @@ import type { SimulationRepository } from '@simulation/domain/ports/simulation-r
 import type { Match } from '@simulation/domain/value-objects/match';
 import { Simulation } from '@simulation/domain/aggregates/simulation';
 import type { SimulationId } from '@simulation/domain/value-objects/simulation-id';
-import type { OwnershipToken } from '@ownership/domain/value-objects/ownership-token';
 
-/**
- * Postgres-backed SimulationRepository. Hybrid schema: queryable
- * metadata columns (state, owner_token, etc.) + JSONB score_snapshot.
- * See ADR-006 (full swap) and ADR-007 (schema shape).
- */
 export class PostgresSimulationRepository implements SimulationRepository {
   constructor(
     private readonly prisma: PrismaClient,
@@ -26,7 +20,7 @@ export class PostgresSimulationRepository implements SimulationRepository {
       totalGoals: snap.totalGoals,
       startedAt: snap.startedAt,
       finishedAt: snap.finishedAt,
-      ownerToken: snap.ownerToken,
+      ownerId: snap.ownerId,
       scoreSnapshot: snap.score as unknown as Prisma.InputJsonValue,
     };
     await this.prisma.simulation.upsert({
@@ -37,26 +31,31 @@ export class PostgresSimulationRepository implements SimulationRepository {
   }
 
   async findById(id: SimulationId): Promise<Simulation | null> {
-    const row = await this.prisma.simulation.findUnique({
-      where: { id: id.value },
-    });
+    const row = await this.prisma.simulation.findUnique({ where: { id: id.value } });
     if (!row) return null;
     return this.toAggregate(row);
   }
 
   async findAll(): Promise<readonly Simulation[]> {
+    const rows = await this.prisma.simulation.findMany({ orderBy: { startedAt: 'desc' } });
+    return rows.map((r) => this.toAggregate(r));
+  }
+
+  async findByOwner(ownerId: string): Promise<readonly Simulation[]> {
     const rows = await this.prisma.simulation.findMany({
+      where: { ownerId },
       orderBy: { startedAt: 'desc' },
     });
     return rows.map((r) => this.toAggregate(r));
   }
 
-  async findByOwner(token: OwnershipToken): Promise<readonly Simulation[]> {
-    const rows = await this.prisma.simulation.findMany({
-      where: { ownerToken: token.value },
+  async findLastStartedAtByOwner(ownerId: string): Promise<Date | null> {
+    const row = await this.prisma.simulation.findFirst({
+      where: { ownerId },
       orderBy: { startedAt: 'desc' },
+      select: { startedAt: true },
     });
-    return rows.map((r) => this.toAggregate(r));
+    return row?.startedAt ?? null;
   }
 
   async delete(id: SimulationId): Promise<void> {
@@ -80,7 +79,7 @@ export class PostgresSimulationRepository implements SimulationRepository {
         totalGoals: row.totalGoals,
         startedAt: row.startedAt,
         finishedAt: row.finishedAt,
-        ownerToken: row.ownerToken,
+        ownerId: row.ownerId,
         score: row.scoreSnapshot as unknown as Array<{
           matchId: string;
           home: number;

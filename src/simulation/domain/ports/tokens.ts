@@ -11,8 +11,6 @@ export const PORT_TOKENS = {
   MATCH_DYNAMICS: Symbol('MatchDynamics'),
   RETENTION_POLICY: Symbol('RetentionPolicy'),
   THROTTLE_POLICY: Symbol('ThrottlePolicy'),
-  OWNERSHIP_TOKEN_GENERATOR: Symbol('OwnershipTokenGenerator'),
-  OWNERSHIP_REPOSITORY: Symbol('OwnershipRepository'),
   COMMAND_BUS: Symbol('CommandBus'),
   EVENT_BUS: Symbol('EventBus'),
 } as const;
