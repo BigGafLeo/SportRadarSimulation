@@ -81,6 +81,71 @@ describe('FastMarkovDynamics', () => {
     expect(dyn.activeStateCount()).toBe(0);
   });
 
+  it('stepMs=0 → throws in constructor', () => {
+    expect(
+      () =>
+        new FastMarkovDynamics(new SeededRandomProvider(1), { durationMs: 5000 }, { stepMs: 0 }),
+    ).toThrow('stepMs must be positive');
+  });
+
+  it('stepMs negative → throws in constructor', () => {
+    expect(
+      () =>
+        new FastMarkovDynamics(new SeededRandomProvider(1), { durationMs: 5000 }, { stepMs: -1 }),
+    ).toThrow('stepMs must be positive');
+  });
+
+  it('durationMs=0 → returns undefined immediately (no steps possible)', async () => {
+    const dyn = new FastMarkovDynamics(
+      new SeededRandomProvider(1),
+      { durationMs: 0 },
+      { stepMs: 100 },
+    );
+    const sim = makeSim();
+    const result = await dyn.nextStep(sim, 0);
+    expect(result).toBeUndefined();
+  });
+
+  it('stepMs > durationMs → returns undefined immediately (cannot take one step)', async () => {
+    const dyn = new FastMarkovDynamics(
+      new SeededRandomProvider(1),
+      { durationMs: 50 },
+      { stepMs: 100 },
+    );
+    const sim = makeSim();
+    const result = await dyn.nextStep(sim, 0);
+    expect(result).toBeUndefined();
+  });
+
+  it('onAbort for unknown simulationId → no-op (does not throw)', () => {
+    const dyn = new FastMarkovDynamics(
+      new SeededRandomProvider(1),
+      { durationMs: 5000 },
+      { stepMs: 100 },
+    );
+    expect(() => dyn.onAbort('non-existent-id')).not.toThrow();
+    expect(dyn.activeStateCount()).toBe(0);
+  });
+
+  it('multiple onAbort calls for same id → idempotent', async () => {
+    const dyn = new FastMarkovDynamics(
+      new SeededRandomProvider(1),
+      { durationMs: 5000 },
+      { stepMs: 100 },
+    );
+    const sim = makeSim();
+    // Seed some state
+    await dyn.nextStep(sim, 0);
+    expect(dyn.activeStateCount()).toBe(1);
+
+    dyn.onAbort(sim.id.value);
+    expect(dyn.activeStateCount()).toBe(0);
+
+    // Second abort on same id must not throw
+    expect(() => dyn.onAbort(sim.id.value)).not.toThrow();
+    expect(dyn.activeStateCount()).toBe(0);
+  });
+
   it('deterministic with same seed', async () => {
     const dynA = new FastMarkovDynamics(
       new SeededRandomProvider(7),

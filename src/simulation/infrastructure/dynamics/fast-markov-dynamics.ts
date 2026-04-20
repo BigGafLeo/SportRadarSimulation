@@ -68,7 +68,11 @@ export class FastMarkovDynamics implements MatchDynamics {
     private readonly random: RandomProvider,
     private readonly core: CoreSimulationConfig,
     private readonly config: MarkovDynamicsConfig,
-  ) {}
+  ) {
+    if (config.stepMs <= 0) {
+      throw new Error('stepMs must be positive');
+    }
+  }
 
   async nextStep(simulation: Simulation, tickIndex: number): Promise<TimedEvent | undefined> {
     const id = simulation.id.value;

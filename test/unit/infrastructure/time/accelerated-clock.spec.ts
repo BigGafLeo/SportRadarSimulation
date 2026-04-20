@@ -32,4 +32,22 @@ describe('AcceleratedClock', () => {
     expect(() => new AcceleratedClock(new SystemClock(), 0)).toThrow();
     expect(() => new AcceleratedClock(new SystemClock(), -1)).toThrow();
   });
+
+  it('factor=1 → sleep duration matches real time (no acceleration)', async () => {
+    const clock = new AcceleratedClock(new SystemClock(), 1);
+    const start = Date.now();
+    await clock.sleep(80);
+    const elapsed = Date.now() - start;
+    // factor=1 means no division — should sleep ~80ms
+    expect(elapsed).toBeGreaterThanOrEqual(60);
+    expect(elapsed).toBeLessThanOrEqual(200);
+  });
+
+  it('sleep(0) → resolves immediately regardless of factor', async () => {
+    const clock = new AcceleratedClock(new SystemClock(), 1000);
+    const start = Date.now();
+    await clock.sleep(0);
+    const elapsed = Date.now() - start;
+    expect(elapsed).toBeLessThan(50);
+  });
 });

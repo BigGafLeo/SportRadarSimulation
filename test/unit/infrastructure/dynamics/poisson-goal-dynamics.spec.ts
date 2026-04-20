@@ -84,6 +84,70 @@ describe('PoissonGoalDynamics', () => {
     expect(avgPerSim).toBeLessThan(24);
   });
 
+  it('durationMs=0 → throws in constructor', () => {
+    expect(
+      () =>
+        new PoissonGoalDynamics(
+          new SeededRandomProvider(1),
+          { durationMs: 0 },
+          { goalsPerTeamMean: 2.7 },
+        ),
+    ).toThrow('durationMs must be positive');
+  });
+
+  it('durationMs negative → throws in constructor', () => {
+    expect(
+      () =>
+        new PoissonGoalDynamics(
+          new SeededRandomProvider(1),
+          { durationMs: -1000 },
+          { goalsPerTeamMean: 2.7 },
+        ),
+    ).toThrow('durationMs must be positive');
+  });
+
+  it('goalsPerTeamMean=0 → totalRatePerMs=0, nextAt=Infinity → returns undefined immediately', async () => {
+    const dyn = new PoissonGoalDynamics(
+      new SeededRandomProvider(1),
+      { durationMs: 90_000 },
+      { goalsPerTeamMean: 0 },
+    );
+    const sim = makeSim();
+    const result = await dyn.nextStep(sim, 0);
+    expect(result).toBeUndefined();
+    // State is cleaned up
+    expect(dyn.activeStateCount()).toBe(0);
+  });
+
+  it('onAbort for unknown simulationId → no-op (does not throw)', () => {
+    const dyn = new PoissonGoalDynamics(
+      new SeededRandomProvider(1),
+      { durationMs: 90_000 },
+      { goalsPerTeamMean: 2.7 },
+    );
+    expect(() => dyn.onAbort('non-existent-id')).not.toThrow();
+    expect(dyn.activeStateCount()).toBe(0);
+  });
+
+  it('multiple onAbort calls for same id → idempotent', async () => {
+    const dyn = new PoissonGoalDynamics(
+      new SeededRandomProvider(42),
+      { durationMs: 90_000 },
+      { goalsPerTeamMean: 5 },
+    );
+    const sim = makeSim();
+    // Seed some state
+    await dyn.nextStep(sim, 0);
+    expect(dyn.activeStateCount()).toBe(1);
+
+    dyn.onAbort(sim.id.value);
+    expect(dyn.activeStateCount()).toBe(0);
+
+    // Second abort must not throw
+    expect(() => dyn.onAbort(sim.id.value)).not.toThrow();
+    expect(dyn.activeStateCount()).toBe(0);
+  });
+
   it('cleans up state when match ends (no leak)', async () => {
     const dyn = new PoissonGoalDynamics(
       new SeededRandomProvider(7),

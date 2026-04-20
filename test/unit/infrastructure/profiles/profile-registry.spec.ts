@@ -50,6 +50,22 @@ describe('Profile registry', () => {
     expect(clk).toBeInstanceOf(SystemClock);
   });
 
+  it('getProfile with empty string → throws', () => {
+    expect(() => getProfile('')).toThrow(/unknown profile/i);
+  });
+
+  it('getProfile with null cast → throws', () => {
+    expect(() => getProfile(null as unknown as string)).toThrow(/unknown profile/i);
+  });
+
+  it('getProfile with undefined cast → throws', () => {
+    expect(() => getProfile(undefined as unknown as string)).toThrow(/unknown profile/i);
+  });
+
+  it('PROFILES object is frozen', () => {
+    expect(Object.isFrozen(PROFILES)).toBe(true);
+  });
+
   it('config schema profile enum stays in sync with registry', () => {
     for (const id of PROFILE_IDS) {
       // Will throw later when SIMULATION_PROFILE is added; for now just import path verifies structure.

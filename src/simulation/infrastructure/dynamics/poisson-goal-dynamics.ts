@@ -37,6 +37,9 @@ export class PoissonGoalDynamics implements MatchDynamics {
     core: CoreSimulationConfig,
     config: PoissonDynamicsConfig,
   ) {
+    if (core.durationMs <= 0) {
+      throw new Error('durationMs must be positive');
+    }
     this.totalRatePerMs = (config.goalsPerTeamMean * PRESET_TEAMS.length) / core.durationMs;
     this.matchDurationMs = core.durationMs;
   }
