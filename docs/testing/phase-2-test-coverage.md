@@ -1,79 +1,90 @@
 # Phase 2 — BullMQ Distributed: Test Coverage
 
 **Tag:** `v2.0-bullmq-distributed`
-**Phase-specific tests:** 13 tests across 4 files
-**Cumulative total:** 258 tests (Phase 1: 245 + Phase 2: 13)
+**Total:** 272 tests across 44 suites (0 failures)
+**New in Phase 2:** +24 tests / +5 suites vs Phase 1
 
 ---
 
-## Unit Tests (6 tests / 1 file)
+## What's New in Phase 2
 
-### Shutdown Utility (6 tests)
+Phase 2 introduces distributed messaging via BullMQ + Redis. The testing strategy favors **real-infrastructure integration tests** (Testcontainers with real Redis) over unit tests with mocked BullMQ, because the actual queue behavior (serialization, topic routing, worker acknowledgment) is the value under test.
 
-**File:** `test/unit/shared/messaging/shutdown-util.spec.ts`
+### New Test Files (13 tests / 5 files)
 
-| Scenario | Details |
-|----------|---------|
-| null input | No-op, no throw |
-| undefined input | No-op, no throw |
-| Object without shutdown method | No-op, no throw |
-| Non-function shutdown property | No-op, no throw |
-| Successful shutdown | Calls async shutdown(), awaits completion |
-| Shutdown throws | Error propagates to caller |
+| File | Tests | Details |
+|------|-------|---------|
+| `redis.client.spec.ts` | 2 | ioredis instance creation, lazyConnect deferred connection |
+| `redis-simulation.repository.spec.ts` | 5 | findById null/found, save+find round-trip, findAll, findByOwner, delete — **real Redis via Testcontainers** |
+| `bullmq-command-bus.spec.ts` | 3 | Dispatch delivery, topic routing, unsubscribe — **real Redis via Testcontainers** |
+| `bullmq-event-bus.spec.ts` | 2 | Event delivery, filter function — **real Redis via Testcontainers** |
+| `http-distributed.e2e-spec.ts` | 1 | Full flow over BullMQ: POST → 9 goals → auto-finish with real engine timing — **real Redis via Testcontainers** |
 
----
+### Enhanced Existing Files (+11 tests)
 
-## Integration Tests (7 tests / 3 files)
-
-All integration tests use **Testcontainers** with real Redis — no mocks.
-
-### BullMQ Command Bus (3 tests)
-
-**File:** `test/integration/distributed/bullmq-command-bus.spec.ts`
-
-| Scenario | Details |
-|----------|---------|
-| Dispatch delivery | Command arrives at subscribed handler |
-| Topic routing | Different topics route to different handlers |
-| Unsubscribe | Stops delivery after unsubscription |
-
-### BullMQ Event Bus (2 tests)
-
-**File:** `test/integration/distributed/bullmq-event-bus.spec.ts`
-
-| Scenario | Details |
-|----------|---------|
-| Event delivery | Subscriber receives published event |
-| Filter function | Filter skips unwanted events |
-
-### Per-Profile Routing (2 tests)
-
-**File:** `test/integration/distributed/per-profile-routing.spec.ts`
-
-| Scenario | Details |
-|----------|---------|
-| Topic isolation | Worker on "uniform-realtime" does NOT receive "poisson-accelerated" job |
-| Load balancing | Two workers on same profile share load |
+| File | Change | New Tests |
+|------|--------|-----------|
+| `score-board.spec.ts` | 10 → 12 | `fromSnapshot` reconstruction, unknown matchId error |
+| `simulation.spec.ts` | 17 → 20 | `fromSnapshot` round-trip (RUNNING), round-trip after goals+finish, restored aggregate mutation |
+| `in-memory-event-publisher.spec.ts` | 1 → 2 | Error propagation from underlying EventBus |
+| `in-memory-command-bus.spec.ts` | 5 → 7 | Error propagation from handler, idempotent multiple unsubscribe |
+| `in-memory-event-bus.spec.ts` | 5 → 8 | Handler error propagation, filter error propagation, empty meta delivery |
 
 ---
 
-## What's NOT Tested (and Why)
+## Full Inventory by Layer
 
-| Category | Files | Reason |
-|----------|-------|--------|
-| Port interfaces | command-bus.port.ts, event-bus.port.ts | TypeScript interfaces |
-| In-memory messaging implementations | in-memory-command-bus.ts, in-memory-event-bus.ts, in-memory-event-publisher.ts | Tested in Phase 1 as infrastructure components — same code, Phase 2 promotes to shared/ |
-| BullMQ adapters (unit level) | bullmq-command-bus.ts, bullmq-event-bus.ts | Integration-tested with real Redis; unit tests would require extensive mocking of BullMQ internals with little added value |
-| Docker entrypoints | worker.main.ts, APP_MODE switching | E2E-level concern — docker-compose integration tested manually |
-| Bull Board UI | /admin/queues route | Third-party UI, tested manually via browser |
+### Domain Layer (117 tests / 12 files)
+
+Same as Phase 1 plus `fromSnapshot` tests:
+- Simulation aggregate: **20 tests** (+3: fromSnapshot round-trips + mutation after restore)
+- ScoreBoard: **12 tests** (+2: fromSnapshot reconstruction + unknown matchId)
+- All other domain files unchanged from Phase 1
+
+### Application Layer (20 tests / 2 files)
+
+Unchanged from Phase 1.
+
+### Infrastructure Layer (105 tests / 19 files)
+
+Phase 1 infrastructure (96 tests) + enhanced messaging (99) + new distributed components (6):
+
+| Component | Tests | Change |
+|-----------|-------|--------|
+| InMemoryCommandBus | 7 | +2 (error propagation, idempotent unsub) |
+| InMemoryEventBus | 8 | +3 (handler error, filter error, empty meta) |
+| InMemoryEventPublisher | 2 | +1 (error propagation) |
+| createRedisClient | 2 | **NEW** — ioredis creation + lazyConnect |
+| All others | — | Unchanged from Phase 1 |
+
+### Integration — In-Process (14 tests / 5 files)
+
+Unchanged from Phase 1.
+
+### Integration — Distributed (11 tests / 4 files)
+
+All use **Testcontainers** with real Redis — no mocks.
+
+| File | Tests | Details |
+|------|-------|---------|
+| `redis-simulation.repository.spec.ts` | 5 | Full CRUD: findById, save, findAll, findByOwner, delete |
+| `bullmq-command-bus.spec.ts` | 3 | Dispatch, topic routing, unsubscribe |
+| `bullmq-event-bus.spec.ts` | 2 | Event delivery, filter function |
+| `http-distributed.e2e-spec.ts` | 1 | Full POST→9 goals→auto-finish flow over BullMQ (real timing ~11s) |
+
+### E2E + Sanity (4 tests / 3 files)
+
+Unchanged from Phase 1 (2 WebSocket tests + 2 sanity).
 
 ---
 
 ## Testing Strategy
 
-Phase 2 introduces distributed messaging. The testing approach favors **real-infrastructure integration tests** over unit tests with mocked BullMQ, because:
+Phase 2's distributed tests validate the **actual BullMQ ↔ Redis integration**:
 
-1. BullMQ behavior (job serialization, topic routing, worker acknowledgment) is the value under test
-2. Mocking the queue would test our mock, not the integration
-3. Testcontainers provide reliable, reproducible Redis instances in CI
-4. Integration tests catch real issues (serialization, connection handling, topic naming)
+1. Job serialization/deserialization through real queues
+2. Topic-based routing between workers
+3. Connection lifecycle (lazyConnect, cleanup)
+4. Full HTTP→BullMQ→Engine→Redis pipeline in one integration test
+
+Unit-testing BullMQ adapters would require mocking internal queue behavior — testing the mock, not the integration. Testcontainers provide reproducible Redis instances in CI with the same guarantees as production.

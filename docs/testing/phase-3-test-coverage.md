@@ -1,121 +1,118 @@
 # Phase 3 — Profile-Driven Specialization: Test Coverage
 
 **Tag:** `v3.0-profile-driven`
-**Phase-specific tests:** 60 tests across 8 files
-**Cumulative total:** 318 tests (Phase 1: 245 + Phase 2: 13 + Phase 3: 60)
+**Total:** 333 tests across 54 suites (0 failures)
+**New in Phase 3:** +61 tests / +10 suites vs Phase 2
 
 ---
 
-## Dynamics (33 tests / 4 files)
+## What's New in Phase 3
 
-### Fast Markov Dynamics (13 tests)
+Phase 3 introduces **profile-driven simulation specialization**: three named profiles (`uniform-realtime`, `poisson-accelerated`, `fast-markov`), each bundling a dynamics strategy + clock configuration. New dynamics implementations, an accelerated clock, a profile registry, and per-profile BullMQ topic routing.
 
-**File:** `test/unit/infrastructure/dynamics/fast-markov-dynamics.spec.ts`
+### New Test Files (57 tests / 10 files)
 
-| Scenario Group | Tests | Details |
-|----------------|-------|---------|
-| Happy path | 4 | Emits GoalScored, valid team IDs, respects durationMs, delayMs = stepMs |
-| Constructor guards | 2 | stepMs=0 throws, stepMs negative throws |
-| Edge cases | 3 | durationMs=0 returns undefined, stepMs > durationMs, state cleanup |
-| Abort handling | 2 | Unknown ID no-op, multiple aborts idempotent |
-| Determinism | 2 | Same seed -> same sequence, different seeds -> different |
+| File | Tests | Details |
+|------|-------|---------|
+| `poisson-goal-dynamics.spec.ts` | 9 | Time-exhaustion, valid team IDs, statistical mean validation, constructor guards (duration ≤ 0), rate=0 edge case, abort handling, state cleanup |
+| `fast-markov-dynamics.spec.ts` | 11 | GoalScored events, durationMs respect, delayMs=stepMs, state cleanup, constructor guards (stepMs ≤ 0), durationMs=0, stepMs > duration, abort no-op/idempotent, determinism |
+| `team-picker.spec.ts` | 3 | Returns PRESET_TEAMS member, fixed-seed determinism, all-6-teams distribution |
+| `accelerated-clock.spec.ts` | 6 | Real now(), sleep(1000) at factor=10 ≈ 100ms, abort via signal, factor ≤ 0 throws, factor=1 real-time, sleep(0) immediate |
+| `profile-registry.spec.ts` | 11 | 3 profiles exposed, DEFAULT_PROFILE_ID, getProfile lookup, unknown throws, each profile produces working dynamics+clock, SystemClock for uniform-realtime, empty/null/undefined throws, PROFILES frozen, config enum in sync |
+| `config.schema.spec.ts` | 3 | SIMULATION_PROFILE defaults to uniform-realtime, accepts known profiles, rejects unknown |
+| `create-simulation.request.spec.ts` | 3 | Default profile, known profiles, unknown rejected |
+| `shutdown-util.spec.ts` | 6 | null/undefined/no-method/non-function no-op, calls shutdown() + resolves, error propagation |
+| `per-profile-routing.spec.ts` | 2 | Topic isolation (uniform-realtime ≠ poisson-accelerated), same-profile load balancing — **real Redis via Testcontainers** |
+| `profile-param.e2e-spec.ts` | 3 | POST without profile defaults, each known profile accepted, unknown → 400 |
 
-### Poisson Goal Dynamics (9 tests)
+### Enhanced Existing Files (+4 tests)
 
-**File:** `test/unit/infrastructure/dynamics/poisson-goal-dynamics.spec.ts`
-
-| Scenario Group | Tests | Details |
-|----------------|-------|---------|
-| Happy path | 2 | Returns undefined when time exhausted, valid team IDs |
-| Statistical validation | 1 | Average goals near expected mean over many runs |
-| Constructor guards | 2 | durationMs=0 throws, durationMs negative throws |
-| Edge cases | 1 | goalsPerTeamMean=0 returns undefined immediately |
-| Abort handling | 2 | Unknown ID no-op, idempotent |
-| State cleanup | 1 | No memory leak after match end |
-
-### Uniform Random Goal Dynamics (8 tests)
-
-**File:** `test/unit/infrastructure/dynamics/uniform-random-goal-dynamics.spec.ts`
-
-(Phase 1 baseline, listed here for completeness)
-
-| Scenario | Details |
-|----------|---------|
-| Tick timing | tickIndex=0 -> firstGoalOffsetMs, tickIndex>0 -> goalIntervalMs |
-| Completion | undefined at goalCount |
-| Event shape | GoalScored with PRESET_TEAMS member |
-| Determinism | Fixed seed -> same team sequence |
-| Distribution | All 6 PRESET_TEAMS covered |
-| Edge cases | goalCount=0 and goalCount=1 |
-
-### Team Picker (3 tests)
-
-**File:** `test/unit/infrastructure/dynamics/team-picker.spec.ts`
-
-| Scenario | Details |
-|----------|---------|
-| Happy path | Returns PRESET_TEAMS member |
-| Determinism | Fixed seed -> same team |
-| Distribution | All 6 teams covered over 600 samples |
+| File | Change | New Tests |
+|------|--------|-----------|
+| `seeded-random-provider.spec.ts` | 6 → 8 | `float()` range [0, 1), float() determinism |
+| `crypto-random-provider.spec.ts` | 5 → 7 | `float()` range [0, 1), float() value variety |
 
 ---
 
-## Time (18 tests / 3 files)
+## Full Inventory by Layer
 
-### Accelerated Clock (6 tests)
+### Domain Layer (117 tests / 12 files)
 
-**File:** `test/unit/infrastructure/time/accelerated-clock.spec.ts`
+Unchanged from Phase 2.
 
-| Scenario | Details |
-|----------|---------|
-| now() | Returns real wall-clock (no acceleration on now) |
-| Acceleration | sleep(1000) at factor=10 finishes in ~100ms |
-| Abort | AbortSignal cancels sleep |
-| Validation | factor <= 0 throws |
-| No acceleration | factor=1 matches real sleep duration |
-| Zero sleep | sleep(0) resolves immediately |
+### Application Layer (20 tests / 2 files)
 
-### System Clock & Fake Clock (12 tests)
+Unchanged from Phase 2.
 
-(Phase 1 components, included in Phase 3 for full profile testing support)
+### Infrastructure Layer (154 tests / 29 files)
+
+Phase 2 infrastructure (105) + new dynamics/profiles/clock (+49):
+
+| Area | Component | Tests | Status |
+|------|-----------|-------|--------|
+| Dynamics | UniformRandomGoalDynamics | 8 | Unchanged |
+| Dynamics | PoissonGoalDynamics | 9 | **NEW** |
+| Dynamics | FastMarkovDynamics | 11 | **NEW** |
+| Dynamics | teamPicker | 3 | **NEW** |
+| Time | AcceleratedClock | 6 | **NEW** |
+| Time | SystemClock | 5 | Unchanged |
+| Time | FakeClock | 7 | Unchanged |
+| Profiles | ProfileRegistry | 11 | **NEW** |
+| Random | CryptoRandomProvider | 7 | +2 (float) |
+| Random | SeededRandomProvider | 8 | +2 (float) |
+| All others | — | — | Unchanged from Phase 2 |
+
+### Shared (9 tests / 2 files)
+
+| Component | Tests | Status |
+|-----------|-------|--------|
+| ConfigSchema | 3 | **NEW** — SIMULATION_PROFILE validation |
+| shutdownIfPossible | 6 | **NEW** — graceful shutdown utility |
+
+### Integration — In-Process (14 tests / 5 files)
+
+Unchanged from Phase 2.
+
+### Integration — Distributed (13 tests / 5 files)
+
+Phase 2 distributed (11 tests) + per-profile routing (2):
+
+| File | Tests | Status |
+|------|-------|--------|
+| `per-profile-routing.spec.ts` | 2 | **NEW** — topic isolation + load balancing |
+| All others | — | Unchanged from Phase 2 |
+
+### E2E (5 tests / 3 files)
+
+Phase 2 E2E (2) + profile-param (3):
+
+| File | Tests | Status |
+|------|-------|--------|
+| `profile-param.e2e-spec.ts` | 3 | **NEW** — default/known/unknown profile via HTTP |
+| ws-goal-observer, ws-multi-observer | 2 | Unchanged |
+
+### Sanity (2 tests / 1 file)
+
+Unchanged.
 
 ---
 
-## Profile Registry (9 tests / 1 file)
+## Bugs Discovered During Test Hardening
 
-**File:** `test/unit/infrastructure/profiles/profile-registry.spec.ts`
+Two potential **infinite loop** bugs found and fixed:
 
-| Scenario | Details |
-|----------|---------|
-| Registry contents | 3 profiles: uniform-realtime, poisson-accelerated, fast-markov |
-| Default | DEFAULT_PROFILE_ID = uniform-realtime |
-| Lookup | getProfile returns matching profile |
-| Unknown profile | getProfile throws on unknown ID |
-| Factory integration | Each profile produces working dynamics + clock |
-| Clock type | uniform-realtime uses SystemClock |
-| Error handling | Empty string, null, undefined all throw |
-| Immutability | PROFILES object is frozen |
-| Sync check | Config schema profile enum matches registry keys |
+1. **FastMarkovDynamics** — `stepMs=0` causes `while(elapsedMs + 0 <= durationMs)` to never advance. Fix: constructor guard throws on `stepMs ≤ 0`.
+
+2. **PoissonGoalDynamics** — `durationMs=0` causes `totalRatePerMs = Infinity`, sampling loop never terminates. Fix: constructor guard throws on `durationMs ≤ 0`.
+
+Both are guarded with constructor validation and tested.
 
 ---
 
-## Bug Fixes Discovered During Test Hardening
+## Testing Strategy
 
-Two potential **infinite loop** bugs were found and fixed:
+New dynamics are tested with **deterministic seeded providers** — same seed produces same goal sequence, enabling exact assertions without statistical flakiness. Statistical tests (Poisson mean validation) run over many samples with wide tolerance.
 
-1. **FastMarkovDynamics** — `stepMs=0` causes `while(elapsedMs + 0 <= durationMs)` to never advance. **Fix:** constructor guard throws on `stepMs <= 0`.
+Profile registry tests verify the **full vertical slice**: registry → dynamics factory → clock factory → working pair. This catches wiring errors early without needing integration tests for each profile combination.
 
-2. **PoissonGoalDynamics** — `durationMs=0` causes `totalRatePerMs = Infinity`, then `sampleExp = 0`, and the sampling loop never terminates. **Fix:** constructor guard throws on `durationMs <= 0`.
-
-Both are now guarded with constructor validation and tested.
-
----
-
-## What's NOT Tested (and Why)
-
-| Category | Files | Reason |
-|----------|-------|--------|
-| Dynamics source implementations | 4 .ts files | Fully tested by their corresponding .spec.ts files |
-| Profile type definitions | Types only | No runtime behavior |
-| Bull Board topic registration | Runtime wiring | Integration concern — tested via E2E with docker-compose |
-| AcceleratedClock precision | Sub-ms timing | OS-dependent jitter makes sub-ms assertions flaky; tested at 100ms granularity |
+Per-profile topic routing uses real Redis (Testcontainers) to validate that BullMQ topic isolation actually works at the queue level.
