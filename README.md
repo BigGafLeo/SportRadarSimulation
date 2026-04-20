@@ -18,6 +18,8 @@ Każda faza zamknięta tagiem — `git checkout vN.M` = działająca wersja z da
 | 3 | [`v3.0-profile-driven`](../../tree/v3.0-profile-driven) | 3 profile dynamics, AcceleratedClock, per-profile topic routing | 333 |
 | 4a | [`v4.1-postgres-persistence`](../../tree/v4.1-postgres-persistence) | PostgreSQL + Prisma, auto-migrate, Redis repo retired | — |
 | 4b | [`v4.2-auth-ownership`](../../tree/v4.2-auth-ownership) | JWT auth, user accounts, ownership refactor (ownerToken → ownerId) | 460 |
+| *5* | *planned* | *Pause/resume, replay, match history, rich domain events* | — |
+| *6* | *planned* | *Health checks, structured logs (Pino), OpenAPI, metrics, graceful shutdown* | — |
 
 Szczegółowa dokumentacja testów per faza: [`docs/testing/`](./docs/testing/)
 - [Phase 1](./docs/testing/phase-1-test-coverage.md) · [Phase 2](./docs/testing/phase-2-test-coverage.md) · [Phase 3](./docs/testing/phase-3-test-coverage.md) · [Phase 4](./docs/testing/phase-4-test-coverage.md)
