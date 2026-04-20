@@ -188,53 +188,13 @@ Projekt używa [Semantic Versioning](https://semver.org/).
 - All 12 port interfaces filled with method signatures
 - `.gitattributes` with LF enforcement
 
-### Testing summary
-- **185 tests passing** across 38 suites, <10s runtime
+### Testing
+- **248 tests passing** across 39 suites, <10s runtime
 - Req-to-test mapping: see README.md
+- Detailed coverage: [`docs/testing/phase-1-test-coverage.md`](./docs/testing/phase-1-test-coverage.md)
 
 ### Tagged
 - `v1.0-mvp-in-process`
-
-### Added (Phase 1b — infrastructure adapters, 2026-04-18)
-- Clock adapters: `SystemClock` (setTimeout + AbortSignal), `FakeClock` (deterministic `advance(ms)` for tests)
-- Random adapters: `CryptoRandomProvider` (node:crypto), `SeededRandomProvider` (LCG, deterministic)
-- Persistence: `InMemorySimulationRepository`, `InMemoryOwnershipRepository`
-- Token generator: `UuidOwnershipTokenGenerator` (delegates to RandomProvider)
-- Policies: `FiveSecondCooldownPolicy`, `TtlRetentionPolicy`
-- Domain type `SimulationConfig` (timing config for Engine/Dynamics)
-- `UniformRandomGoalDynamics`: uniform 1/6 selection from `PRESET_TEAMS`, 9 goals
-- `TickingSimulationEngine`: streaming tick loop with intent-dispatch to aggregate + abort handling
-- Messaging: `InMemoryCommandBus`, `InMemoryEventBus`, `InMemoryEventPublisher`
-- ADR-001: `MatchDynamics.nextStep.event` is an intent, not the final emitted event (intent-pattern)
-- Integration test: full 9-goal flow completes in ~13ms wall-clock via FakeClock
-- 65 new unit tests + 1 integration test (total 133)
-
-### Phase 1b status
-- Branch: `phase-1-mvp-in-process` (continues)
-- Still no tag — `v1.0-mvp-in-process` is created after Phase 1c (Application + Gateway + E2E)
-- Next: Phase 1c — SimulationOrchestrator + REST/WS gateway + integration/E2E tests
-
-### Added (Phase 1a — domain layer, 2026-04-18)
-- Value Objects with Zod validation: `TeamId`, `MatchId`, `Team`, `Match`, `SimulationId`, `SimulationName` (Unicode letters/digits/spaces regex + no-trim rule), `ScoreBoard` (immutable operations), `OwnershipToken`
-- `PRESET_MATCHES` constant: Germany vs Poland, Brazil vs Mexico, Argentina vs Uruguay (PDF requirement)
-- `PRESET_TEAMS` derived list of 6 teams for random selection in Phase 1b
-- Domain events: `DomainEvent` base interface + `SimulationStarted`, `GoalScored`, `SimulationFinished` (reason: manual|auto), `SimulationRestarted`
-- Domain errors: `DomainError` base + `InvalidValueError` + `InvalidStateError` with `SimulationState` type
-- `Simulation` aggregate root with state machine RUNNING ↔ FINISHED, private constructor + `create()` factory, `applyGoal`/`finish`/`restart` invariants, `pendingEvents` buffer via `pullEvents()`, `toSnapshot()` read model
-- All 12 port interfaces filled with method signatures:
-  - Simulation ports: `Clock` (now+sleep with AbortSignal), `RandomProvider` (int+uuid), `SimulationRepository` (save/findById/findAll/findByOwner/delete), `EventPublisher` (publish), `SimulationEngine` (streaming `run(sim, emit, signal)` per design spec §6.3), `MatchDynamics` (nextStep → TimedEvent), `RetentionPolicy` (shouldRemove), `ThrottlePolicy` (canIgnite)
-  - Ownership ports: `OwnershipRepository` (save/findByToken/updateLastIgnitionAt) + `OwnershipRecord` type, `OwnershipTokenGenerator` (generate)
-  - Messaging ports: `CommandBus` (dispatch/subscribe) + `Command`/`Subscription` types, `EventBus` (publish/subscribe) + `EventMeta`/`EventFilter` types
-- 68 unit tests total, <3s runtime
-- `.gitattributes` with LF enforcement to resolve CRLF drift on Windows
-
-### Changed
-- `.eslintrc.cjs`: removed `no-empty-interface` override for ports (interfaces are no longer empty)
-
-### Phase 1a status
-- Branch: `phase-1-mvp-in-process`
-- No tag yet — `v1.0-mvp-in-process` is created after Phase 1c completes (infrastructure + application + gateway + integration/E2E tests)
-- Next: Phase 1b — Infrastructure adapters (Engine, Dynamics, Clock, Random, Repos, Policies, Buses)
 
 ## [0.1.0] — 2026-04-18
 
@@ -260,5 +220,10 @@ Projekt używa [Semantic Versioning](https://semver.org/).
 ### Tagged
 - `v0.1-scaffold`
 
-[Unreleased]: https://example.invalid/compare/v0.1-scaffold...HEAD
-[0.1.0]: https://example.invalid/releases/tag/v0.1-scaffold
+[Unreleased]: https://github.com/BigGafLeo/SportRadarSimulation/compare/v4.2-auth-ownership...HEAD
+[4.2.0]: https://github.com/BigGafLeo/SportRadarSimulation/compare/v4.1-postgres-persistence...v4.2-auth-ownership
+[4.1.0]: https://github.com/BigGafLeo/SportRadarSimulation/compare/v3.0-profile-driven...v4.1-postgres-persistence
+[3.0.0]: https://github.com/BigGafLeo/SportRadarSimulation/compare/v2.0-bullmq-distributed...v3.0-profile-driven
+[2.0.0]: https://github.com/BigGafLeo/SportRadarSimulation/compare/v1.0-mvp-in-process...v2.0-bullmq-distributed
+[1.0.0]: https://github.com/BigGafLeo/SportRadarSimulation/compare/v0.1-scaffold...v1.0-mvp-in-process
+[0.1.0]: https://github.com/BigGafLeo/SportRadarSimulation/releases/tag/v0.1-scaffold
