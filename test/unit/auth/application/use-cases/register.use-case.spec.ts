@@ -58,4 +58,26 @@ describe('RegisterUseCase', () => {
     });
     expect(result.email).toBe('user@example.com');
   });
+
+  it('returned user data does NOT contain password or hash fields', async () => {
+    const result = await useCase.execute({
+      email: 'clean@example.com',
+      password: 'StrongPass1!',
+    });
+    expect(result.id).toBeDefined();
+    expect(result.email).toBeDefined();
+    expect(result.createdAt).toBeDefined();
+    const r = result as unknown as Record<string, unknown>;
+    expect(r.password).toBeUndefined();
+    expect(r.passwordHash).toBeUndefined();
+    expect(r.hash).toBeUndefined();
+  });
+
+  it('email is normalized (lowercased) before saving — verified via repository spy', async () => {
+    const saveSpy = jest.spyOn(repo, 'save');
+    await useCase.execute({ email: 'Mixed@EXAMPLE.com', password: 'StrongPass1!' });
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+    const savedUser = saveSpy.mock.calls[0][0];
+    expect(savedUser.email.value).toBe('mixed@example.com');
+  });
 });

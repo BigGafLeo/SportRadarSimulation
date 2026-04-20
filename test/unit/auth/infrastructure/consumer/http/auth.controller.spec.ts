@@ -33,6 +33,24 @@ describe('AuthController', () => {
       expect(result.user.createdAt).toBeDefined();
     });
 
+    it('response contains createdAt as ISO string (not Date object)', async () => {
+      const result = await controller.register({
+        email: 'isodate@example.com',
+        password: 'StrongPass1!',
+      });
+      expect(typeof result.user.createdAt).toBe('string');
+      expect(new Date(result.user.createdAt).toISOString()).toBe(result.user.createdAt);
+    });
+
+    it('response contains accessToken as string', async () => {
+      const result = await controller.register({
+        email: 'token@example.com',
+        password: 'StrongPass1!',
+      });
+      expect(typeof result.accessToken).toBe('string');
+      expect(result.accessToken.length).toBeGreaterThan(0);
+    });
+
     it('throws ConflictException on duplicate email', async () => {
       await controller.register({ email: 'dup@example.com', password: 'StrongPass1!' });
       await expect(
@@ -53,6 +71,24 @@ describe('AuthController', () => {
       });
       expect(result.accessToken).toBeDefined();
       expect(result.user.email).toBe('user@example.com');
+    });
+
+    it('response contains createdAt as ISO string (not Date object)', async () => {
+      const result = await controller.login({
+        email: 'user@example.com',
+        password: 'CorrectPass!',
+      });
+      expect(typeof result.user.createdAt).toBe('string');
+      expect(new Date(result.user.createdAt).toISOString()).toBe(result.user.createdAt);
+    });
+
+    it('response contains accessToken as string', async () => {
+      const result = await controller.login({
+        email: 'user@example.com',
+        password: 'CorrectPass!',
+      });
+      expect(typeof result.accessToken).toBe('string');
+      expect(result.accessToken.length).toBeGreaterThan(0);
     });
 
     it('throws UnauthorizedException on wrong email', async () => {

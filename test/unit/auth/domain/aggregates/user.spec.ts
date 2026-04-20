@@ -37,4 +37,24 @@ describe('User', () => {
     expect(restored.passwordHash.value).toBe(user.passwordHash.value);
     expect(restored.createdAt).toEqual(user.createdAt);
   });
+
+  it('exposes all properties correctly after creation', () => {
+    const user = User.create({ id, email, passwordHash: hash, createdAt: now });
+    expect(user.id).toBe(id);
+    expect(user.email).toBe(email);
+    expect(user.passwordHash).toBe(hash);
+    expect(user.createdAt).toBe(now);
+  });
+
+  it('two users with the same id are the same entity (id-based identity)', () => {
+    const user1 = User.create({ id, email, passwordHash: hash, createdAt: now });
+    const user2 = User.create({
+      id,
+      email: Email.create('other@example.com'),
+      passwordHash: HashedPassword.fromHash('$argon2id$other'),
+      createdAt: new Date('2026-01-01T00:00:00Z'),
+    });
+    // User aggregate does not have an equals() method; identity is checked via id VO
+    expect(user1.id.equals(user2.id)).toBe(true);
+  });
 });

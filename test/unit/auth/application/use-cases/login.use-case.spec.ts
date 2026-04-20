@@ -5,6 +5,7 @@ import { InvalidCredentialsError } from '@auth/domain/errors/invalid-credentials
 import { User } from '@auth/domain/aggregates/user';
 import { UserId } from '@auth/domain/value-objects/user-id';
 import { Email } from '@auth/domain/value-objects/email';
+import { HashedPassword } from '@auth/domain/value-objects/hashed-password';
 
 describe('LoginUseCase', () => {
   let repo: InMemoryUserRepository;
@@ -55,5 +56,39 @@ describe('LoginUseCase', () => {
       password: 'CorrectPass1!',
     });
     expect(result.id).toBe(userId);
+  });
+
+  it('throws InvalidCredentialsError for empty password (not a different error)', async () => {
+    await expect(useCase.execute({ email: 'user@example.com', password: '' })).rejects.toThrow(
+      InvalidCredentialsError,
+    );
+  });
+
+  it('return value contains id, email and createdAt — no password fields', async () => {
+    const result = await useCase.execute({
+      email: 'user@example.com',
+      password: 'CorrectPass1!',
+    });
+    expect(result.id).toBe(userId);
+    expect(result.email).toBe('user@example.com');
+    expect(result.createdAt).toBeInstanceOf(Date);
+    // Must not expose any password field
+    const r = result as unknown as Record<string, unknown>;
+    expect(r.password).toBeUndefined();
+    expect(r.passwordHash).toBeUndefined();
+    expect(r.hash).toBeUndefined();
+  });
+
+  it('calls passwordHasher.verify even when user is not found (timing-safe DUMMY_HASH path)', async () => {
+    const verifySpy = jest.spyOn(hasher, 'verify');
+    await expect(
+      useCase.execute({ email: 'nobody@example.com', password: 'SomePassword!' }),
+    ).rejects.toThrow(InvalidCredentialsError);
+    // verify() must have been called with the dummy hash so timing is constant
+    expect(verifySpy).toHaveBeenCalledTimes(1);
+    const [, hashArg] = verifySpy.mock.calls[0] as [string, HashedPassword];
+    // The dummy hash starts with $argon2id$ — it is NOT the stored user hash
+    expect(hashArg).toBeInstanceOf(HashedPassword);
+    expect(hashArg.value).toMatch(/^\$argon2id\$/);
   });
 });

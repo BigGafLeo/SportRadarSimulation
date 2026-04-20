@@ -17,4 +17,12 @@ describe('getPrismaClient', () => {
     const client = getPrismaClient(url);
     expect(typeof client.$disconnect).toBe('function');
   });
+
+  it('different URLs return different instances (verify isolation)', () => {
+    const urlA = 'postgresql://test:test@localhost:5432/db_a';
+    const urlB = 'postgresql://test:test@localhost:5432/db_b';
+    const clientA = getPrismaClient(urlA);
+    const clientB = getPrismaClient(urlB);
+    expect(clientA).not.toBe(clientB);
+  });
 });

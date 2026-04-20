@@ -121,6 +121,40 @@ describe('Simulation + Auth E2E', () => {
       .expect(429);
   });
 
+  it('restart without Bearer → 401', async () => {
+    const token = await registerAndGetToken(app, 'restartnobear@example.com');
+    const created = await request(app.getHttpServer())
+      .post('/simulations')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Katar 2023' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/simulations/${created.body.simulationId}/finish`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(202);
+    await request(app.getHttpServer())
+      .post(`/simulations/${created.body.simulationId}/restart`)
+      .expect(401);
+  });
+
+  it("restart someone else's simulation → 403", async () => {
+    const token1 = await registerAndGetToken(app, 'restartowner@example.com');
+    const token2 = await registerAndGetToken(app, 'restartother@example.com');
+    const created = await request(app.getHttpServer())
+      .post('/simulations')
+      .set('Authorization', `Bearer ${token1}`)
+      .send({ name: 'Katar 2023' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/simulations/${created.body.simulationId}/finish`)
+      .set('Authorization', `Bearer ${token1}`)
+      .expect(202);
+    await request(app.getHttpServer())
+      .post(`/simulations/${created.body.simulationId}/restart`)
+      .set('Authorization', `Bearer ${token2}`)
+      .expect(403);
+  });
+
   it('two different users start simultaneously → both 201', async () => {
     const token1 = await registerAndGetToken(app, 'userA@example.com');
     const token2 = await registerAndGetToken(app, 'userB@example.com');
