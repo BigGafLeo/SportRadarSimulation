@@ -109,7 +109,7 @@ Expected: creates `package.json` with defaults.
   "name": "sportradar-simulation",
   "version": "0.1.0",
   "private": true,
-  "description": "SportRadar recruitment task: football match simulation API",
+  "description": "SportRadar coding task: football match simulation API",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -883,7 +883,7 @@ git commit -m "ci: add GitHub Actions workflow (lint, typecheck, test, build, do
 ````markdown
 # SportRadar Simulation
 
-Zadanie rekrutacyjne SportRadar: REST + WebSocket API do symulacji meczów piłkarskich.
+REST + WebSocket API do symulacji meczów piłkarskich.
 
 **Status**: Phase 0 (scaffolding) — struktura projektu gotowa, domain logic w Phase 1.
 
@@ -961,11 +961,11 @@ Każda niebanalna decyzja architektoniczna = ADR w `docs/decisions/NNN-<slug>.md
 
 ## Project context
 
-Patrz [CLAUDE.md](./CLAUDE.md) — architectural principles, testing philosophy, git workflow, interview prep talking points.
+Patrz [CLAUDE.md](./CLAUDE.md) — architectural principles, testing philosophy, git workflow.
 
 ## License
 
-Private (recruitment task).
+Private.
 ````
 
 - [ ] **Step 2: Commit README**
@@ -1187,7 +1187,7 @@ git log --oneline
 
 Expected: `working tree clean`, log shows scaffold progression (init → configs → bootstrap → docker → ci → docs → tag).
 
-- [ ] **Step 2: Summary for demo / interview prep**
+- [ ] **Step 2: Summary for demo**
 
 At end of Phase 0 you should be able to demonstrate:
 - `git log --oneline` shows ~8-10 atomic, conventional commits

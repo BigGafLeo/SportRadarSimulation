@@ -125,7 +125,7 @@ No refresh tokens — stateless JWT with 15min TTL. Refresh adds complexity with
 - ✅ Swap to Keycloak/Auth0 = new guard, zero simulation changes (~1-2h)
 - ✅ B→C (microservice) extraction cost: new NestJS app + proxy routing
 - ✅ Tests use FakePasswordHasher (plaintext, no argon2 overhead)
-- ❌ No token revocation — acceptable for recruitment demo
+- ❌ No token revocation — acceptable for demo scope
 - 🔄 SimulationController changes from `@Headers('x-simulation-token')` to `@UseGuards() @CurrentUser()`
 ```
 
@@ -155,7 +155,7 @@ Stepping stone lifecycle: Phase 1 created it → Phase 4b retires it. Like Redis
 
 ## Consequences
 - ✅ Clean codebase — no dead code or legacy abstractions
-- ✅ ADR documents the lifecycle for interview discussion
+- ✅ ADR documents the stepping stone lifecycle
 - ❌ Tests referencing OwnershipToken must be rewritten
 - 🔄 ThrottlePolicy parameter changes from OwnershipToken to string (userId)
 - 🔄 SimulationRepository.findByOwner changes from OwnershipToken to string

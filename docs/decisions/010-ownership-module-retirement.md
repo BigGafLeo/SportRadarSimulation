@@ -19,7 +19,7 @@ Stepping stone lifecycle: Phase 1 created it → Phase 4b retires it. Like Redis
 
 ## Consequences
 - ✅ Clean codebase — no dead code or legacy abstractions
-- ✅ ADR documents the lifecycle for interview discussion
+- ✅ ADR documents the stepping stone lifecycle
 - ❌ Tests referencing OwnershipToken must be rewritten
 - 🔄 ThrottlePolicy parameter changes from OwnershipToken to string (userId)
 - 🔄 SimulationRepository.findByOwner changes from OwnershipToken to string

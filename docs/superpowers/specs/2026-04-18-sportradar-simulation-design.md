@@ -3,7 +3,7 @@
 - **Status**: Draft (pending user review)
 - **Date**: 2026-04-18
 - **Owner**: Karol
-- **Task source**: `TS-Coding-task.pdf` (SportRadar recruitment exercise)
+- **Task source**: `TS-Coding-task.pdf` (SportRadar coding exercise)
 - **Supersedes**: —
 
 ---
@@ -18,12 +18,11 @@ REST + WebSocket API symulujące 3 mecze piłkarskie:
 
 API consumer może start/finish/restart symulacji. Symulacja trwa 9 sekund, co 1s losowa drużyna strzela gol, eventy są push'owane do consumenta.
 
-### 1.2 Real goal (what's being measured)
-Pokazanie podczas rozmowy rekrutacyjnej:
-- Skalowalną, pluggable architekturę (hexagonal + DDD)
-- Umiejętność planowania ewolucji (phased rollout z demonstracją podczas rozmowy)
+### 1.2 Quality goals
+- Scalable, pluggable architecture (hexagonal + DDD)
+- Phased evolution demonstrating incremental delivery
 - Clean code, testability, separation of concerns
-- Znajomość nowoczesnego stacka TS/Node (NestJS, BullMQ, Zod, Prisma)
+- Modern TS/Node stack (NestJS, BullMQ, Zod, Prisma)
 
 ### 1.3 Non-goals
 - Realistic football simulation (biznesowo irrelevant)
@@ -676,7 +675,7 @@ Każde wymaganie z PDFa ma explicit test (w README tabela):
 | Message bus | BullMQ + Redis | najlepsza DX w Node/TS, out-of-box features (D5) |
 | DB (Phase 4+) | PostgreSQL 16 + Prisma | Prisma = best TS DX, type-safe queries, migration tooling |
 | Auth (Phase 4+) | `@nestjs/jwt` + `@nestjs/passport` + `passport-jwt` + argon2 | standard NestJS, argon2 nowocześniejsze niż bcrypt |
-| Container | Docker (multi-stage, non-root, distroless-optional) | standard dla recruitment demo |
+| Container | Docker (multi-stage, non-root, distroless-optional) | standard containerization |
 | Orchestration | docker-compose | wystarcza dla demo, k8s = future |
 | CI | GitHub Actions (lint + test + build) | free, szeroko używany |
 | Testcontainers | @testcontainers/node | real Postgres/Redis w CI (Phase 4+) |
@@ -708,7 +707,7 @@ Każde wymaganie z PDFa ma explicit test (w README tabela):
 | D16 | 3-warstwowa odpowiedzialność: Gateway (edge) / Orchestrator (business) / Aggregate (invariants) | separation of concerns, dependency rule respected |
 | D17 | 10 portów formalnie (wszystkie) | spójność architektury, user explicit request |
 | D18 | Auth w NestJS Guards (opcja C), nie edge proxy | demo simplicity, production note w README |
-| D19 | 6-fazowy rollout z git tags | demonstrable evolution na rozmowie |
+| D19 | 6-fazowy rollout z git tags | demonstrable evolution via tagged phases |
 | D20 | CommandBus/EventBus jako porty od Fazy 1 | Phase 2 migration = swap adapter, zero biz code change |
 
 Wszystkie decyzje mają pełny kontekst w konwersacji brainstormingowej; znaczące zmiany vs powyższe powinny dostać osobny ADR.
@@ -730,45 +729,4 @@ Poza fazami:
 
 ---
 
-## 14. Appendix: Interview Talking Points
-
-### A. Architektoniczne uzasadnienie
-- "Task mówi 'grow a lot' → potraktowałem to poważnie i zaprojektowałem pod scale od dnia 1"
-- "Hexagonal + DDD daje mi testowalność i swap-ability, niezbędne przy phased rollout"
-- "Porty od Fazy 1 = Faza 2 (distributed) to zmiana adaptera, nie rewrite"
-
-### B. Biggest tradeoff (potencjalne pytanie)
-- **Zarzut**: "to overengineering dla 3 meczów"
-- **Odpowiedź**:
-  - Task explicit uzasadnia ("grow a lot, turn blind eye on overengineering")
-  - Phased roadmap pokazuje, że **każda abstrakcja ma konkretną alternatywną implementację** — nie ma martwych portów
-  - Demo dowolnej fazy działa — nie pokazuję "wieży z kodu" tylko "serię coherent deliverables"
-
-### C. "Co gdybyś miał 2× więcej czasu?"
-- Event sourcing od dnia 1 (nie tylko DB persistence)
-- Full Kafka setup + KRaft (dla real event streaming)
-- k8s operator dla auto-scaling worker pools per profile
-- Full observability stack (Prometheus + Grafana + Jaeger)
-- Load testing scenario + chaos engineering samples
-
-### D. Key design moments
-Odwołanie do §12 Key Decisions Log — przygotować narrację dla top 5 decyzji:
-1. D5 (BullMQ vs alternatives) — right-sizing story
-2. D6 (Engine vs Dynamics) — single responsibility + dimensions of variability
-3. D9 (profile-driven replicas) — unikam cartesian explosion
-4. D14 (streaming over iterator) — reactive behavior preparation
-5. D19 (6-fazowy rollout) — demonstrable evolution
-
-### E. Live demo plan (podczas rozmowy)
-1. `git log --oneline --graph` — pokazać ewolucję
-2. `git checkout v1.0-mvp-in-process` — uruchomić MVP, pokazać testy (9s w <100ms)
-3. `git checkout v2.0-bullmq-distributed` — ten sam test działa, ale teraz via BullMQ/Redis
-4. `git checkout v3.0-profile-driven` — pokazać Poisson engine, `POST { profile: "poisson-realistic" }`
-5. `git checkout v4.0-persistence-auth` — register → login → start simulation jako authenticated user
-6. `git checkout v5.0-rich-operations` — pause / resume / replay
-7. Pokazać Bull Board live (podczas wykonywania symulacji)
-8. Pokazać Swagger UI (jeśli Faza 6)
-
----
-
-*End of spec. Next step: user review → implementation planning (writing-plans skill).*
+*End of spec.*

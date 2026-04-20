@@ -21,7 +21,7 @@ No refresh tokens — stateless JWT with 15min TTL. Refresh adds complexity with
 - ✅ Swap to Keycloak/Auth0 = new guard, zero simulation changes (~1-2h)
 - ✅ B→C (microservice) extraction cost: new NestJS app + proxy routing
 - ✅ Tests use FakePasswordHasher (plaintext, no argon2 overhead)
-- ❌ No token revocation — acceptable for recruitment demo
+- ❌ No token revocation — acceptable for demo scope
 - 🔄 SimulationController changes from `@Headers('x-simulation-token')` to `@UseGuards() @CurrentUser()`
 
 ## References

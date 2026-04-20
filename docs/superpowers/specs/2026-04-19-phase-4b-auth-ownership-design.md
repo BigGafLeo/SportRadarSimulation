@@ -8,7 +8,7 @@ Replace the opaque `OwnershipToken` system (Phase 1 stepping stone) with JWT-bas
 
 | ID | Decision | Rationale |
 |----|----------|-----------|
-| D1 | Skip refresh tokens | Recruitment demo, not production. Access token only (15 min). Refresh = Phase 5+ if needed. |
+| D1 | Skip refresh tokens | Demo scope, not production. Access token only (15 min). Refresh = Phase 5+ if needed. |
 | D2 | Delete `ownership/` module entirely | Stepping stone retired (like RedisSimulationRepository in Phase 2). New `auth/` bounded context replaces it. ADR documents lifecycle. |
 | D3 | Two-step migration (non-destructive) | ADD `owner_id` nullable → backfill to demo user → SET NOT NULL + DROP `owner_token`. Demonstrates production-grade migration path. |
 | D4 | Minimal auth scope: register + login + me | 3 endpoints + JwtAuthGuard. No logout (stateless JWT can't be revoked server-side). Email UNIQUE constraint. |
@@ -376,16 +376,3 @@ environment:
 
 Added to all app services (orchestrator + workers). Workers need JWT_SECRET only if they ever validate tokens (currently they don't, but config schema requires it).
 
-## 14. Interview Talking Points
-
-1. **"Why delete ownership module instead of refactoring?"** → Stepping stone pattern. Phase 1 needed anonymous ownership fast. Phase 4b needs real auth. The code is completely different — refactoring would be more confusing than a clean swap. ADR documents the lifecycle.
-
-2. **"Why loose coupling for auth?"** → SimulationModule doesn't know about JWT. Guard is injected via token. Swap to Keycloak/Auth0 = one new guard file, zero simulation changes. B→C (microservice) cost: ~1-2h.
-
-3. **"Why no refresh tokens?"** → Conscious scope decision. Stateless JWT can't be revoked, so refresh without revocation adds complexity without security. DB-backed refresh is the right answer but out of scope for demo. Documented as Phase 5+.
-
-4. **"How does throttle work without OwnershipRepository?"** → Query `simulations` table directly — `findLastStartedAtByOwner()`. Data already exists, covered by `@@index([ownerId])`. One fewer port to maintain.
-
-5. **"userId param in ThrottlePolicy — why keep it if unused?"** → Future per-user rate limiting (premium tiers, different cooldowns). Zero cost now, avoids signature change later.
-
-6. **"Two-step migration — why not just drop and recreate?"** → Demonstrates production-grade migration skills. In real system, dropping data is unacceptable. Backfill to demo user preserves existing simulations.

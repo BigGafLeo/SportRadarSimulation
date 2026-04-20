@@ -1,8 +1,6 @@
 # SportRadar Simulation — Project Context
 
-Zadanie rekrutacyjne SportRadar: REST + WebSocket API do symulacji meczów piłkarskich.
-
-**Rzeczywisty cel**: zaprezentować podczas rozmowy rekrutacyjnej dojrzałą, skalowalną architekturę i umiejętność planowania ewolucji oprogramowania krok po kroku.
+REST + WebSocket API do symulacji meczów piłkarskich.
 
 ## Stack (final, per fazie)
 
@@ -109,8 +107,7 @@ Wybieramy option X, ponieważ ...
 
 ### Dlaczego to istotne
 
-- **Interview prep** — na rozmowie masz dokumentację "dlaczego tak a nie inaczej"
-- **Audytowalność** — rekruter może prześledzić logikę ewolucji
+- **Audytowalność** — każdy może prześledzić logikę ewolucji
 - **Samodyscyplina** — zmusza do świadomego decyzjonowania
 - **Future-proof** — za 3 miesiące wrócisz i zrozumiesz
 
@@ -151,7 +148,7 @@ Zobacz: `docs/superpowers/specs/2026-04-18-sportradar-simulation-design.md` §9.
 
 **Kluczowe**: `git tag` per faza (`v0.1-scaffold`, `v1.0-mvp-in-process`, `v2.0-bullmq-distributed`, `v3.0-profile-driven`, `v4.0-persistence-auth`, `v5.0-rich-operations`, `v6.0-ops-ready`).
 
-Na rozmowie: `git checkout vN.M` = działająca wersja z danej fazy. `git log --oneline --graph` = narracja ewolucji.
+`git checkout vN.M` = działająca wersja z danej fazy.
 
 ---
 
@@ -174,21 +171,6 @@ Na rozmowie: `git checkout vN.M` = działająca wersja z danej fazy. `git log --
 - Commity conventional: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`, `perf:`
 - PR per wyodrębniona zmiana (dla solo dev nie jest wymagany, ale dobry demo-style)
 - Nigdy nie rebase'ujemy tagów
-
----
-
-## Interview Prep — Talking Points
-
-Przygotuj odpowiedź na każde z tych pytań (więcej w specu §14):
-
-1. **"Dlaczego Hexagonal?"** → testowalność + swap-ability + clean boundaries + task mówi "grow a lot"
-2. **"Dlaczego rozdzielasz Engine vs Dynamics?"** → 2 ortogonalne wymiary variability, single responsibility
-3. **"Dlaczego BullMQ a nie Kafka?"** → right-sizing, right tool for right scale; Kafka = over-engineering dla tego volumu
-4. **"Jak przeskoczyłbyś na Kafka jeśli pojawiłby się event sourcing?"** → swap CommandBus/EventBus adapter — architektura gotowa
-5. **"Co gdybyś miał dodać 1000 równoczesnych symulacji?"** → profile-driven replicas + horizontal scale + Redis cluster
-6. **"Pokaż najbardziej dumny kod"** → aggregate + dynamics injection + testy z FakeClock pełnej symulacji w <100ms
-7. **"Co byś zrobił inaczej, gdybyś miał 2× więcej czasu?"** → event sourcing od dnia 1, full OTel + Prometheus + Grafana, k8s operator
-8. **"Gdzie ryzyko w architekturze?"** → overengineering dla 3 meczów, ale uzasadnione przez "grow a lot" w treści zadania i phased roadmap pokazuje RoI
 
 ---
 

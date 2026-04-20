@@ -1,6 +1,6 @@
 # SportRadar Simulation
 
-Zadanie rekrutacyjne SportRadar: REST + WebSocket API do symulacji meczów piłkarskich.
+REST + WebSocket API do symulacji meczów piłkarskich.
 
 > **Bare minimum (wymagania PDFa):** tag [`v1.0-mvp-in-process`](#phased-roadmap) — pełne 7 wymagań, 248 testów, single-process, InMemory adapters. Wszystko powyżej to demonstracja ewolucji architektury krok po kroku.
 
@@ -209,8 +209,8 @@ Zdefiniowane i walidowane przez Zod w [`src/shared/config/config.schema.ts`](./s
 
 ## Project context
 
-Patrz [CLAUDE.md](./CLAUDE.md) — architectural principles, testing philosophy, git workflow, interview prep talking points.
+Patrz [CLAUDE.md](./CLAUDE.md) — architectural principles, testing philosophy, git workflow.
 
 ## License
 
-Private (recruitment task).
+Private.
