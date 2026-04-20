@@ -76,4 +76,19 @@ describe('InMemorySimulationRepository', () => {
     const repo = new InMemorySimulationRepository();
     await expect(repo.delete(SimulationId.create(id1))).resolves.not.toThrow();
   });
+
+  it('findByOwner with non-existent ownerToken returns empty array', async () => {
+    const repo = new InMemorySimulationRepository();
+    await repo.save(makeSim(id1, tokenA));
+    const result = await repo.findByOwner(
+      OwnershipToken.create('550e8400-e29b-41d4-a716-999999999999'),
+    );
+    expect(result).toEqual([]);
+  });
+
+  it('findAll on empty repo returns empty array', async () => {
+    const repo = new InMemorySimulationRepository();
+    const result = await repo.findAll();
+    expect(result).toEqual([]);
+  });
 });

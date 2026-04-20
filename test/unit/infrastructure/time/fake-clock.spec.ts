@@ -51,4 +51,11 @@ describe('FakeClock', () => {
     ctrl.abort(new Error('pre-aborted'));
     await expect(clock.sleep(100, ctrl.signal)).rejects.toThrow('pre-aborted');
   });
+
+  it('advance(0) does not change now()', async () => {
+    const clock = new FakeClock(new Date('2026-01-01T00:00:00Z'));
+    const before = clock.now().toISOString();
+    await clock.advance(0);
+    expect(clock.now().toISOString()).toBe(before);
+  });
 });

@@ -81,6 +81,15 @@ describe('SimulationGateway', () => {
     });
     expect(socket.rooms.size).toBe(0);
   });
+
+  it('handleUnsubscribe with invalid UUID format throws (ZodError)', () => {
+    const gateway = new SimulationGateway();
+    const socket = makeSocket('client-1');
+    expect(() =>
+      gateway.handleUnsubscribe(socket as never, { simulationId: 'not-a-uuid' }),
+    ).toThrow();
+    expect(socket.rooms.size).toBe(0);
+  });
 });
 
 describe('WsEventForwarder', () => {

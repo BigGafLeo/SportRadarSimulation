@@ -238,6 +238,12 @@ describe('SimulationOrchestrator', () => {
       expect(list.map((s) => s.id).sort()).toEqual([a.simulationId, b.simulationId].sort());
     });
 
+    it('returns empty array when repo is empty', async () => {
+      const w = buildWiring();
+      const list = await w.orchestrator.listSimulations();
+      expect(list).toEqual([]);
+    });
+
     it('getSimulation returns snapshot for existing id', async () => {
       const w = buildWiring();
       const a = await w.orchestrator.startSimulation({ name: 'Katar 2023' });

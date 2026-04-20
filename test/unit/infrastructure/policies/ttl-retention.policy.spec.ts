@@ -52,4 +52,20 @@ describe('TtlRetentionPolicy', () => {
     const check = new Date(finishedAt.getTime() + ONE_HOUR_MS);
     expect(policy.shouldRemove(sim, check)).toBe(true);
   });
+
+  it('ttlMs=0 → FINISHED sim is immediately removable at exact finishedAt', () => {
+    const zeroPolicy = new TtlRetentionPolicy(0);
+    const start = new Date('2026-04-18T10:00:00Z');
+    const sim = makeSim(start);
+    const finishedAt = new Date(start.getTime() + 9000);
+    sim.finish('auto', finishedAt);
+    expect(zeroPolicy.shouldRemove(sim, finishedAt)).toBe(true);
+  });
+
+  it('RUNNING sim with ttlMs=0 → never removed', () => {
+    const zeroPolicy = new TtlRetentionPolicy(0);
+    const start = new Date('2026-04-18T10:00:00Z');
+    const sim = makeSim(start);
+    expect(zeroPolicy.shouldRemove(sim, start)).toBe(false);
+  });
 });

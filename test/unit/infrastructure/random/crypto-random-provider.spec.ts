@@ -15,6 +15,12 @@ describe('CryptoRandomProvider', () => {
     }
   });
 
+  it('int(5, 5) always returns 5', () => {
+    for (let i = 0; i < 20; i++) {
+      expect(rng.int(5, 5)).toBe(5);
+    }
+  });
+
   it('uuid() returns a UUID v4 string', () => {
     const u = rng.uuid();
     expect(u).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);

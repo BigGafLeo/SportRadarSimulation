@@ -82,4 +82,35 @@ describe('UniformRandomGoalDynamics', () => {
     }
     expect(seen.size).toBe(PRESET_TEAMS.length);
   });
+
+  it('goalCount=0 → returns undefined on tick 0', async () => {
+    const zeroConfig = {
+      goalCount: 0,
+      goalIntervalMs: 1000,
+      firstGoalOffsetMs: 1000,
+      durationMs: 9000,
+      startCooldownMs: 5000,
+    };
+    const dyn = new UniformRandomGoalDynamics(new SeededRandomProvider(42), zeroConfig);
+    const step = await dyn.nextStep(makeSim(), 0);
+    expect(step).toBeUndefined();
+  });
+
+  it('goalCount=1 → returns one TimedEvent on tick 0, then undefined on tick 1', async () => {
+    const oneConfig = {
+      goalCount: 1,
+      goalIntervalMs: 1000,
+      firstGoalOffsetMs: 500,
+      durationMs: 9000,
+      startCooldownMs: 5000,
+    };
+    const dyn = new UniformRandomGoalDynamics(new SeededRandomProvider(42), oneConfig);
+    const sim = makeSim();
+    const step0 = await dyn.nextStep(sim, 0);
+    expect(step0).toBeDefined();
+    expect(step0!.delayMs).toBe(500);
+    expect(step0!.event).toBeInstanceOf(GoalScored);
+    const step1 = await dyn.nextStep(sim, 1);
+    expect(step1).toBeUndefined();
+  });
 });

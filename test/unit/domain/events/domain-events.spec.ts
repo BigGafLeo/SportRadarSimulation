@@ -40,4 +40,32 @@ describe('Domain events', () => {
     const e = new SimulationRestarted(simId, at);
     expect(e.type).toBe('SimulationRestarted');
   });
+
+  it('GoalScored.totalGoals stores the provided value', () => {
+    const e = new GoalScored(
+      simId,
+      TeamId.create('germany'),
+      [{ matchId: 'm1', home: 3, away: 0 }],
+      3,
+      at,
+    );
+    expect(e.totalGoals).toBe(3);
+  });
+
+  it('SimulationFinished.finalScore stores the provided score snapshot array', () => {
+    const scoreSnapshot = [
+      { matchId: 'm1', home: 2, away: 1 },
+      { matchId: 'm2', home: 0, away: 3 },
+    ];
+    const e = new SimulationFinished(simId, 'auto', scoreSnapshot, 6, at);
+    expect(e.finalScore).toEqual(scoreSnapshot);
+    expect(e.totalGoals).toBe(6);
+  });
+
+  it('each event type property matches its class name', () => {
+    expect(new SimulationStarted(simId, at).type).toBe('SimulationStarted');
+    expect(new GoalScored(simId, TeamId.create('germany'), [], 0, at).type).toBe('GoalScored');
+    expect(new SimulationFinished(simId, 'auto', [], 0, at).type).toBe('SimulationFinished');
+    expect(new SimulationRestarted(simId, at).type).toBe('SimulationRestarted');
+  });
 });

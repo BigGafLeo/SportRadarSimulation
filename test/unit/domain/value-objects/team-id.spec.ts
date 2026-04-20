@@ -23,4 +23,13 @@ describe('TeamId', () => {
   it('toString returns value', () => {
     expect(TeamId.create('germany').toString()).toBe('germany');
   });
+
+  it('rejects whitespace-only string "   "', () => {
+    expect(() => TeamId.create('   ')).toThrow(InvalidValueError);
+  });
+
+  it('accepts single character — minimum valid id', () => {
+    const id = TeamId.create('a');
+    expect(id.value).toBe('a');
+  });
 });

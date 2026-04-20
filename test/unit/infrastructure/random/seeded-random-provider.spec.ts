@@ -35,4 +35,11 @@ describe('SeededRandomProvider', () => {
     const u = rng.uuid();
     expect(u).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   });
+
+  it('int(5, 5) always returns 5 (min equals max)', () => {
+    const rng = new SeededRandomProvider(42);
+    for (let i = 0; i < 20; i++) {
+      expect(rng.int(5, 5)).toBe(5);
+    }
+  });
 });

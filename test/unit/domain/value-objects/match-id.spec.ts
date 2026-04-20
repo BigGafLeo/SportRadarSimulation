@@ -13,4 +13,8 @@ describe('MatchId', () => {
   it('equality by value', () => {
     expect(MatchId.create('m1').equals(MatchId.create('m1'))).toBe(true);
   });
+
+  it('rejects whitespace-only string', () => {
+    expect(() => MatchId.create('   ')).toThrow(InvalidValueError);
+  });
 });

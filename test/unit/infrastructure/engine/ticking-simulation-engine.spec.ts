@@ -150,4 +150,36 @@ describe('TickingSimulationEngine', () => {
     );
     expect(emitted).toEqual([]);
   });
+
+  it('dynamics returns undefined on tick 0 → engine finishes auto with totalGoals=0', async () => {
+    const clock = new FakeClock(new Date(0));
+    const zeroGoalConfig = {
+      goalCount: 0,
+      goalIntervalMs: 1000,
+      firstGoalOffsetMs: 1000,
+      durationMs: 9000,
+      startCooldownMs: 5000,
+    };
+    const dyn = new UniformRandomGoalDynamics(new SeededRandomProvider(42), zeroGoalConfig);
+    const engine = new TickingSimulationEngine(clock, dyn);
+    const sim = makeSim();
+    const emitted: DomainEvent[] = [];
+
+    await engine.run(
+      sim,
+      async (e) => {
+        emitted.push(e);
+      },
+      new AbortController().signal,
+    );
+
+    const finishEvents = emitted.filter((e) => e.type === 'SimulationFinished');
+    expect(finishEvents).toHaveLength(1);
+    const last = finishEvents[0];
+    if (last instanceof SimulationFinished) {
+      expect(last.reason).toBe('auto');
+      expect(last.totalGoals).toBe(0);
+    }
+    expect(emitted.filter((e) => e.type === 'GoalScored')).toHaveLength(0);
+  });
 });

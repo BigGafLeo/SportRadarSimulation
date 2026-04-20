@@ -93,4 +93,15 @@ describe('DomainExceptionFilter', () => {
     const { host } = mockHost();
     expect(() => filter.catch(new CustomDomainError(), host)).toThrow(CustomDomainError);
   });
+
+  it('InvalidValueError response body has error.code and error.message', () => {
+    const { response, host } = mockHost();
+    filter.catch(new InvalidValueError('name', 'too short', 'abc'), host);
+    const body = response._body as { error: { code: string; message: string } };
+    expect(body).toHaveProperty('error');
+    expect(body.error).toHaveProperty('code', 'INVALID_VALUE');
+    expect(body.error).toHaveProperty('message');
+    expect(typeof body.error.message).toBe('string');
+    expect(body.error.message.length).toBeGreaterThan(0);
+  });
 });

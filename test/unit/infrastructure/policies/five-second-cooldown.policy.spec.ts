@@ -35,4 +35,15 @@ describe('FiveSecondCooldownPolicy', () => {
     const now2 = new Date('2026-04-18T12:00:01Z');
     expect(shortPolicy.canIgnite(token, last, now2)).toBe(true);
   });
+
+  it('cooldownMs=0 → always allows ignition even when lastIgnitionAt equals now', () => {
+    const zeroPolicy = new FiveSecondCooldownPolicy(0);
+    const now = new Date('2026-04-18T12:00:00Z');
+    expect(zeroPolicy.canIgnite(token, now, now)).toBe(true);
+  });
+
+  it('same exact timestamp: lastIgnitionAt equals now with cooldown=5000 → blocked (0ms elapsed)', () => {
+    const now = new Date('2026-04-18T12:00:00Z');
+    expect(policy.canIgnite(token, now, now)).toBe(false);
+  });
 });
