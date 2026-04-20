@@ -63,4 +63,26 @@ describe('InMemoryCommandBus', () => {
     expect(onRun).toEqual(['r']);
     expect(onAbort).toEqual([]);
   });
+
+  it('handler that throws propagates error to dispatch caller', async () => {
+    const bus = new InMemoryCommandBus();
+    bus.subscribe<RunCommand>('sim.run', async () => {
+      throw new Error('handler failed');
+    });
+    await expect(bus.dispatch<RunCommand>('sim.run', { type: 'run', id: 'x' })).rejects.toThrow(
+      'handler failed',
+    );
+  });
+
+  it('multiple unsubscribe calls on same subscription are idempotent', async () => {
+    const bus = new InMemoryCommandBus();
+    const received: string[] = [];
+    const sub = bus.subscribe<RunCommand>('sim.run', async (c) => {
+      received.push(c.id);
+    });
+    await sub.unsubscribe();
+    await expect(sub.unsubscribe()).resolves.toBeUndefined();
+    await bus.dispatch<RunCommand>('sim.run', { type: 'run', id: 'ignored' });
+    expect(received).toEqual([]);
+  });
 });

@@ -83,4 +83,41 @@ describe('InMemoryEventBus', () => {
     expect(a).toHaveLength(1);
     expect(b).toHaveLength(1);
   });
+
+  it('handler that throws propagates error to publish caller', async () => {
+    const bus = new InMemoryEventBus();
+    bus.subscribe(
+      () => true,
+      async () => {
+        throw new Error('handler exploded');
+      },
+    );
+    await expect(bus.publish(new SimulationStarted(simId, at))).rejects.toThrow('handler exploded');
+  });
+
+  it('filter function that throws propagates error to publish caller', async () => {
+    const bus = new InMemoryEventBus();
+    bus.subscribe(
+      () => {
+        throw new Error('filter exploded');
+      },
+      async () => {},
+    );
+    await expect(bus.publish(new SimulationStarted(simId, at))).rejects.toThrow('filter exploded');
+  });
+
+  it('publish with empty meta still delivers event to subscriber', async () => {
+    const bus = new InMemoryEventBus();
+    const received: Array<{ event: DomainEvent; meta: unknown }> = [];
+    bus.subscribe(
+      () => true,
+      async (e, m) => {
+        received.push({ event: e, meta: m });
+      },
+    );
+    // publish() default parameter is {} — call without explicit meta
+    await bus.publish(new SimulationStarted(simId, at));
+    expect(received).toHaveLength(1);
+    expect(received[0].meta).toEqual({});
+  });
 });

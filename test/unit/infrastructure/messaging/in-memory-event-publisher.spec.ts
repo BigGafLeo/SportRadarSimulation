@@ -21,4 +21,17 @@ describe('InMemoryEventPublisher', () => {
     expect(received).toHaveLength(1);
     expect(received[0].meta).toEqual({ simulationId: simId.value });
   });
+
+  it('propagates error when EventBus.publish() throws', async () => {
+    const failingBus = {
+      publish: async () => {
+        throw new Error('bus is down');
+      },
+      subscribe: () => ({ unsubscribe: async () => {} }),
+    };
+    const publisher = new InMemoryEventPublisher(failingBus);
+    await expect(publisher.publish(new SimulationStarted(simId, at))).rejects.toThrow(
+      'bus is down',
+    );
+  });
 });
