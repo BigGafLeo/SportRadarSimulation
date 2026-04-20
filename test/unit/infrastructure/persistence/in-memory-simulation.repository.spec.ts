@@ -104,12 +104,10 @@ describe('InMemorySimulationRepository', () => {
     await expect(repo.delete(SimulationId.create(id1))).resolves.not.toThrow();
   });
 
-  it('findByOwner with non-existent ownerToken returns empty array', async () => {
+  it('findByOwner with non-existent ownerId returns empty array', async () => {
     const repo = new InMemorySimulationRepository();
-    await repo.save(makeSim(id1, tokenA));
-    const result = await repo.findByOwner(
-      OwnershipToken.create('550e8400-e29b-41d4-a716-999999999999'),
-    );
+    await repo.save(makeSim(id1, userA));
+    const result = await repo.findByOwner('non-existent-user-id');
     expect(result).toEqual([]);
   });
 

@@ -229,14 +229,14 @@ describe('Simulation.restart', () => {
 
 describe('Simulation multi-cycle (create → finish → restart → applyGoal → finish → restart)', () => {
   const id = SimulationId.create('550e8400-e29b-41d4-a716-446655440000');
-  const token = OwnershipToken.create('550e8400-e29b-41d4-a716-446655440001');
+  const ownerId = '550e8400-e29b-41d4-a716-446655440001';
   const name = SimulationName.create('Katar 2023');
   const start = new Date('2026-04-18T12:00:00Z');
 
   it('score resets to 0:0 on each restart', () => {
     const sim = Simulation.create({
       id,
-      ownerToken: token,
+      ownerId,
       name,
       matches: PRESET_MATCHES,
       profileId: 'default',
@@ -277,7 +277,7 @@ describe('Simulation multi-cycle (create → finish → restart → applyGoal �
   it('applyGoal after finish+restart works correctly', () => {
     const sim = Simulation.create({
       id,
-      ownerToken: token,
+      ownerId,
       name,
       matches: PRESET_MATCHES,
       profileId: 'default',
@@ -302,14 +302,14 @@ describe('Simulation multi-cycle (create → finish → restart → applyGoal �
 
 describe('Simulation event ordering', () => {
   const id = SimulationId.create('550e8400-e29b-41d4-a716-446655440000');
-  const token = OwnershipToken.create('550e8400-e29b-41d4-a716-446655440001');
+  const ownerId = '550e8400-e29b-41d4-a716-446655440001';
   const name = SimulationName.create('Katar 2023');
   const start = new Date('2026-04-18T12:00:00Z');
 
   it('create emits SimulationStarted first, then applyGoal emits GoalScored, then finish emits SimulationFinished', () => {
     const sim = Simulation.create({
       id,
-      ownerToken: token,
+      ownerId,
       name,
       matches: PRESET_MATCHES,
       profileId: 'default',
@@ -346,7 +346,7 @@ describe('Simulation event ordering', () => {
   it('accumulated events between pulls arrive in insertion order', () => {
     const sim = Simulation.create({
       id,
-      ownerToken: token,
+      ownerId,
       name,
       matches: PRESET_MATCHES,
       profileId: 'default',
